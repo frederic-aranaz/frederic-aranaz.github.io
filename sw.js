@@ -17,7 +17,8 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v1';   // v1 : création du portail (24/08/2026)
+var VERSION = 'v2';   // v2 : liens Google en nouvel onglet (24/08/2026)
+                      // v1 : création du portail (24/08/2026)
 var CACHE = 'ekaye-portail-' + VERSION;
 
 var FICHIERS = [
