@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Inverse de l'icône Découverte (fond sombre, losange ambre) : sur l'écran
+       d'accueil, le portail se distingue au premier coup d'œil des applis qu'il
+       ouvre, tout en restant de la même famille. -->
+  <rect width="512" height="512" rx="96" fill="#c9882a"/>
+  <path d="M256 88 L424 256 L256 424 L88 256 Z" fill="none" stroke="#141210" stroke-width="30" stroke-linejoin="round"/>
+  <path d="M256 176 L336 256 L256 336 L176 256 Z" fill="#141210"/>
+</svg>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portail EKAYE</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#141210">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EKAYE">
+  <!-- iOS ignore les icônes SVG du manifest : sans ce PNG, « Ajouter à l'écran
+       d'accueil » depuis un iPhone prend une capture de la page comme icône. -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
+  <style>
+    /* Palette et typographie reprises telles quelles de la page de vente et de
+       Découverte EKAYE : ce portail est la porte d'entrée de ces deux outils,
+       il ne doit pas avoir l'air de venir d'un autre atelier. Ambre #c9882a =
+       couleur d'ÉCRAN (le doré imprimé #86673C de la charte reste aux emails
+       et aux imprimés). Thème sombre unique, assumé : les trois pages se
+       regardent en plein soleil sur un stand, pas dans un navigateur de bureau. */
+    :root {
+      --ek:        #c9882a;
+      --ek-clair:  #f0b84a;
+      --bg:        #141210;
+      --bg-barre:  #1a1510;
+      --bg-card:   #1e1b17;
+      --bg-card2:  #252118;
+      --text:      #eeece8;
+      --text-2:    #d8c8a8;
+      --text-3:    #a08860;
+      --border:    rgba(201,136,42,0.25);
+      --borderdiv: rgba(201,136,42,0.14);
+      --ok:        #7fb069;
+      --warn:      #d99b3d;
+      --shadow:    0 2px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+      --r:         12px;
+      --font:      'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    }
+
+    /* ── Barre du haut ── */
+    .topbar {
+      background: var(--bg-barre);
+      padding: 0.8rem 1rem;
+      padding-top: max(0.8rem, env(safe-area-inset-top));
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.5);
+    }
+    .marque {
+      width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(201,136,42,0.15);
+      border: 1px solid rgba(201,136,42,0.3);
+    }
+    .marque svg { width: 22px; height: 22px; display: block; }
+    .titre h1 {
+      font-size: 15px; font-weight: 600; color: #e8d8b0;
+      letter-spacing: 0.14em;
+    }
+    .titre p { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .etat-reseau {
+      margin-left: auto; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 4px 9px; border-radius: 20px; white-space: nowrap;
+      color: var(--ok); background: rgba(127,176,105,0.12);
+      border: 1px solid rgba(127,176,105,0.3);
+    }
+    body.hors-ligne .etat-reseau {
+      color: var(--warn); background: rgba(217,155,61,0.12);
+      border-color: rgba(217,155,61,0.35);
+    }
+
+    /* ── Groupes ── */
+    .groupe { margin: 1.1rem 0.75rem 0; }
+    .groupe h2 {
+      font-size: 12px; font-weight: 700; color: var(--ek-clair);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin: 0 0 0.2rem 0.15rem;
+    }
+    .groupe .indice {
+      font-size: 11px; color: var(--text-3);
+      margin: 0 0 0.7rem 0.15rem; line-height: 1.5;
+    }
+    .tuiles { display: grid; gap: 0.6rem; }
+    @media (min-width: 560px) {
+      .tuiles.deux { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Tuiles ── */
+    .tuile {
+      display: grid;
+      grid-template-columns: 44px 1fr 14px;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 0.9rem 0.85rem;
+      text-decoration: none;
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+    }
+    .tuile:active { transform: scale(0.985); background: var(--bg-card2); }
+    .tuile:hover  { border-color: rgba(201,136,42,0.5); }
+    .tuile:focus-visible {
+      outline: 2px solid var(--ek-clair);
+      outline-offset: 2px;
+    }
+    .tuile .ico {
+      width: 44px; height: 44px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(201,136,42,0.12);
+      border: 1px solid rgba(201,136,42,0.28);
+    }
+    .tuile .ico svg { width: 22px; height: 22px; display: block; }
+    .tuile .nom {
+      font-size: 15px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    }
+    .tuile .desc {
+      font-size: 12px; color: var(--text-3);
+      line-height: 1.45; margin-top: 3px;
+    }
+    .tuile .fleche { color: var(--text-3); }
+    .tuile .fleche svg { width: 14px; height: 14px; display: block; }
+
+    /* Tuile principale : le geste du stand, plus haute et plus contrastée. */
+    .tuile.phare { background: var(--bg-card2); border-color: rgba(201,136,42,0.45); }
+    .tuile.phare .ico { background: var(--ek); border-color: var(--ek); }
+    .tuile.phare .ico svg { color: #1a1208; }
+    .tuile.phare .nom { font-size: 16px; color: #f4e6c8; }
+
+    /* ── Pastilles d'état ── */
+    .chip {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 2.5px 7px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .chip.autonome { color: var(--ok);     background: rgba(127,176,105,0.12); border: 1px solid rgba(127,176,105,0.3); }
+    .chip.bureau   { color: var(--text-3); background: rgba(201,136,42,0.08);  border: 1px solid var(--borderdiv); }
+
+    /* Hors ligne : ce qui appelle Google est inatteignable. On le dit et on le
+       désarme, plutôt que de laisser taper sur une tuile qui tournera dans le vide. */
+    body.hors-ligne .tuile[data-reseau] {
+      opacity: 0.42;
+      pointer-events: none;
+    }
+    .motif-hors-ligne { display: none; font-size: 11px; color: var(--warn); margin-top: 4px; }
+    body.hors-ligne .tuile[data-reseau] .motif-hors-ligne { display: block; }
+    body.hors-ligne .tuile[data-reseau] .desc { display: none; }
+
+    /* ── Ligne d'action (pas une destination : un calcul qu'on déclenche) ── */
+    .action {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-top: 0.6rem; padding: 0.75rem 0.85rem;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      text-decoration: none; color: var(--text-2);
+      font-size: 13px; font-weight: 600;
+    }
+    .action:hover { border-color: rgba(201,136,42,0.5); color: var(--text); }
+    .action:focus-visible { outline: 2px solid var(--ek-clair); outline-offset: 2px; }
+    .action svg { width: 17px; height: 17px; flex-shrink: 0; color: var(--ek); }
+    .action .sous { font-size: 11px; font-weight: 400; color: var(--text-3); margin-top: 2px; display: block; }
+    body.hors-ligne .action { opacity: 0.42; pointer-events: none; }
+
+    /* ── Pied de page ── */
+    .pied {
+      margin: 1.6rem 0.9rem 0;
+      font-size: 11.5px; color: var(--text-3); line-height: 1.6;
+      text-align: center;
+    }
+    .installer {
+      margin: 1.4rem 0.75rem 0;
+      padding: 0.85rem 0.9rem;
+      background: rgba(201,136,42,0.07);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      font-size: 12px; color: var(--text-2); line-height: 1.55;
+    }
+    .installer b { color: var(--ek-clair); font-weight: 700; }
+    body.installee .installer { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="topbar">
+      <span class="marque" aria-hidden="true">
+        <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M256 96 L400 256 L256 416 L112 256 Z" fill="none" stroke="#c9882a" stroke-width="30" stroke-linejoin="round"/>
+          <path d="M256 172 L340 256 L256 340 L172 256 Z" fill="#c9882a"/>
+        </svg>
+      </span>
+      <div class="titre">
+        <h1>EKAYE</h1>
+        <p>Tous les outils, une seule icône</p>
+      </div>
+      <span class="etat-reseau" id="etatReseau">En ligne</span>
+    </header>
+
+    <main>
+
+      <!-- ── Sur le stand ─────────────────────────────────────────────── -->
+      <section class="groupe">
+        <h2>Sur le stand</h2>
+        <p class="indice">Les deux seuls outils qui fonctionnent sans réseau.</p>
+        <div class="tuiles">
+
+          <a class="tuile phare" href="https://frederic-aranaz.github.io/ekaye-vente-scan/">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 8V5a2 2 0 0 1 2-2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                <path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                <path d="M7 12h10"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Vendre <span class="chip autonome">Hors ligne</span></span>
+              <span class="desc">Scan de l'étiquette QR, panier, encaissement, fiche client.</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" href="https://frederic-aranaz.github.io/ekaye-decouverte/">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Découverte <span class="chip autonome">Hors ligne</span></span>
+              <span class="desc">Nouveau contact visiteur : coordonnées, photos, consentement.</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+        </div>
+      </section>
+
+      <!-- ── Consulter ────────────────────────────────────────────────── -->
+      <section class="groupe">
+        <h2>Consulter</h2>
+        <p class="indice">Pages servies par le classeur du registre — réseau nécessaire.</p>
+        <div class="tuiles deux">
+
+          <a class="tuile" data-reseau href="https://script.google.com/macros/s/AKfycbwl4wyUyxOyrWVtXVvjoS-7LMqAULNaNBCAUdBZxRYTlFF3OVkjE0mWifOiG6oqK_h5Xg/exec?inventaire">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v3"/>
+                <path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z"/><path d="M10 12h4"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Inventaire</span>
+              <span class="desc">Pièces en stock par dépôt, bon de dépôt signable.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" data-reseau href="https://script.google.com/macros/s/AKfycbwl4wyUyxOyrWVtXVvjoS-7LMqAULNaNBCAUdBZxRYTlFF3OVkjE0mWifOiG6oqK_h5Xg/exec?carte=1">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Carte des clients</span>
+              <span class="desc">Une épingle par ville où une pièce est partie.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+        </div>
+
+        <a class="action" data-reseau href="https://script.google.com/macros/s/AKfycbwl4wyUyxOyrWVtXVvjoS-7LMqAULNaNBCAUdBZxRYTlFF3OVkjE0mWifOiG6oqK_h5Xg/exec?actualiserVentes=1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>
+          </svg>
+          <span>
+            Actualiser « Ventes par point de vente »
+            <span class="sous">Recalcule la synthèse du classeur, puis affiche une confirmation.</span>
+          </span>
+        </a>
+      </section>
+
+      <!-- ── À l'atelier ──────────────────────────────────────────────── -->
+      <section class="groupe">
+        <h2>À l'atelier</h2>
+        <p class="indice">Écran large, imprimante, clavier.</p>
+        <div class="tuiles">
+
+          <a class="tuile" data-reseau href="https://script.google.com/macros/s/AKfycbwl4wyUyxOyrWVtXVvjoS-7LMqAULNaNBCAUdBZxRYTlFF3OVkjE0mWifOiG6oqK_h5Xg/exec?etiquettes">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8z"/>
+                <circle cx="7.5" cy="7.5" r="1.2" fill="#c9882a"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Étiquettes QR <span class="chip bureau">Ordinateur</span></span>
+              <span class="desc">Impression des étiquettes Niimbot D110, par pièce ou par lot.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" data-reseau href="https://docs.google.com/spreadsheets/d/133qMwB3oH7jza0HkwVxhwpSKtkdeGH2ZUF0WbnR3enk/edit">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Classeur registre</span>
+              <span class="desc">Saisie, Vendus, stock par famille, ventes par point de vente.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" data-reseau href="https://docs.google.com/spreadsheets/d/1gkcXQ6iTaudY2BYY8FK2efazmJfao7V8utI1SWIyuRA/edit">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Classeur Découverte</span>
+              <span class="desc">Contacts collectés, consentements, base clients.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+        </div>
+      </section>
+
+      <div class="installer">
+        <b>Une seule icône :</b> ajoute cette page à ton écran d'accueil
+        (Chrome : menu du navigateur → « Installer l'application » · iPhone : Partager → « Sur l'écran d'accueil »),
+        puis supprime les autres raccourcis EKAYE. Ils restent tous accessibles d'ici.
+      </div>
+
+      <p class="pied">EKAYE — Frédéric Aranaz</p>
+
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      // État réseau : la même pastille que sur la page de vente et Découverte,
+      // au même endroit. Elle commande aussi les tuiles qui appellent Google.
+      var pastille = document.getElementById('etatReseau');
+
+      function majReseau() {
+        var enLigne = navigator.onLine;
+        document.body.classList.toggle('hors-ligne', !enLigne);
+        pastille.textContent = enLigne ? 'En ligne' : 'Hors ligne';
+      }
+
+      window.addEventListener('online', majReseau);
+      window.addEventListener('offline', majReseau);
+      majReseau();
+
+      // Le bandeau « ajoute à l'écran d'accueil » n'a plus de sens une fois
+      // l'application installée : on le retire au lieu de le laisser radoter.
+      var installee = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      if (installee) document.body.classList.add('installee');
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

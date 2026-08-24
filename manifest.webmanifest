@@ -1,0 +1,32 @@
+{
+  "name": "Portail EKAYE",
+  "short_name": "EKAYE",
+  "description": "Tous les outils EKAYE derrière une seule icône : vente, découverte, inventaire, carte, étiquettes.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141210",
+  "theme_color": "#141210",
+  "icons": [
+    {
+      "src": "icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icone-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Version « maskable » : Android recadre l'icône en cercle, en goutte ou en
+       carré selon le lanceur. Le motif reste donc dans les 80 % centraux, le
+       fond ambre déborde jusqu'aux bords pour ne jamais laisser de coin vide. -->
+  <rect width="512" height="512" fill="#c9882a"/>
+  <path d="M256 128 L384 256 L256 384 L128 256 Z" fill="none" stroke="#141210" stroke-width="26" stroke-linejoin="round"/>
+  <path d="M256 196 L316 256 L256 316 L196 256 Z" fill="#141210"/>
+</svg>
