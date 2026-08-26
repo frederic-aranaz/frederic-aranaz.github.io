@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portail LAM</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#8c3044">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LAM">
+  <!-- iOS ignore les icônes SVG du manifest : sans ce PNG, « Ajouter à l'écran
+       d'accueil » depuis un iPhone prend une capture de la page comme icône. -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
+  <style>
+    /* Palette reprise telle quelle du formulaire de vente et du comptage de
+       caisse : ce portail est la porte d'entrée de ces deux outils, il ne doit
+       pas avoir l'air de venir d'ailleurs. D'où un thème CLAIR, à l'inverse du
+       Portail EKAYE — celui-ci se regarde en plein soleil sur un stand, celui-ci
+       derrière un comptoir. */
+    :root {
+      --lam:       #963a49;
+      --lam-dark:  #7a2d3b;
+      --lam-mid:   #b04d62;
+      --lam-pale2: #ecdde0;
+      --text:      #1e1416;
+      --text-2:    #5c3a42;
+      --text-3:    #9e7278;
+      --card:      linear-gradient(160deg, #fefcfb 0%, #fdf6f7 100%);
+      --card2:     linear-gradient(160deg, #fdf5f6 0%, #f8eef0 100%);
+      --border:    rgba(150,58,73,0.13);
+      --borderdiv: rgba(150,58,73,0.08);
+      --ok:        #2f6b34;
+      --warn:      #8a4f12;
+      --shadow:    0 2px 12px rgba(100,30,40,0.07), 0 1px 3px rgba(100,30,40,0.04);
+      --r:         12px;
+      --font:      'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: linear-gradient(150deg, #faf7f5 0%, #f2eaec 55%, #f6f0f1 100%);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    }
+
+    /* ── Barre du haut ── */
+    .topbar {
+      background: linear-gradient(135deg, #7a2d3b 0%, #963a49 55%, #b04d62 100%);
+      padding: 0.8rem 1rem;
+      padding-top: max(0.8rem, env(safe-area-inset-top));
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 3px 18px rgba(100,25,38,0.28);
+    }
+    .marque {
+      width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+    .marque svg { width: 21px; height: 21px; display: block; }
+    .titre h1 {
+      font-size: 15px; font-weight: 600; color: #fdf0f2;
+      letter-spacing: 0.12em;
+    }
+    .titre p { font-size: 11px; color: rgba(253,235,238,0.68); margin-top: 2px; }
+    .etat-reseau {
+      margin-left: auto; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 4px 9px; border-radius: 20px; white-space: nowrap;
+      color: #dff0e0; background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.28);
+    }
+    body.hors-ligne .etat-reseau {
+      color: #ffe6c2; background: rgba(255,214,150,0.18);
+      border-color: rgba(255,214,150,0.4);
+    }
+
+    /* ── Bandeau hors ligne ──
+       Sur ce portail, TOUTES les tuiles dépendent du réseau : hors ligne, la page
+       entière s'éteint. Une page grisée sans un mot ressemble à une panne ; on dit
+       donc ce qui se passe, en haut, plutôt que de laisser deviner. */
+    .bandeau-hors-ligne {
+      display: none;
+      margin: 1rem 0.75rem 0;
+      padding: 11px 13px;
+      border-left: 4px solid #b06a1e;
+      background: #ece5dc;
+      border-radius: 8px;
+      font-size: 12.5px; line-height: 1.5; color: #6b4a2a;
+    }
+    body.hors-ligne .bandeau-hors-ligne { display: block; }
+    .bandeau-hors-ligne strong { color: var(--warn); }
+
+    /* ── Groupes ── */
+    .groupe { margin: 1.1rem 0.75rem 0; }
+    .groupe h2 {
+      font-size: 12px; font-weight: 700; color: var(--lam-dark);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin: 0 0 0.2rem 0.15rem;
+      padding-left: 9px; border-left: 3px solid var(--lam-mid);
+    }
+    .groupe .indice {
+      font-size: 11px; color: var(--text-3);
+      margin: 0.35rem 0 0.7rem 0.15rem; line-height: 1.5;
+    }
+    .tuiles { display: grid; gap: 0.6rem; }
+    @media (min-width: 560px) {
+      .tuiles.deux { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Tuiles ── */
+    .tuile {
+      display: grid;
+      grid-template-columns: 44px 1fr 14px;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 0.9rem 0.85rem;
+      text-decoration: none;
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+    }
+    .tuile:active { transform: scale(0.985); background: var(--card2); }
+    .tuile:hover  { border-color: rgba(150,58,73,0.32); background: var(--card2); }
+    .tuile:focus-visible { outline: 2px solid var(--lam); outline-offset: 2px; }
+    .tuile .ico {
+      width: 44px; height: 44px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #f8f0f1 0%, #f2e8ea 100%);
+      border: 0.5px solid var(--lam-pale2);
+    }
+    .tuile .ico svg { width: 22px; height: 22px; display: block; }
+    .tuile .nom {
+      font-size: 15px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    }
+    .tuile .desc {
+      font-size: 12px; color: var(--text-3);
+      line-height: 1.45; margin-top: 3px;
+    }
+    .tuile .fleche { color: var(--text-3); }
+    .tuile .fleche svg { width: 14px; height: 14px; display: block; }
+
+    /* Tuile principale : le geste du comptoir, plus haute et plus contrastée. */
+    .tuile.phare { background: var(--card2); border: 1.5px solid rgba(150,58,73,0.3); }
+    .tuile.phare .ico {
+      background: linear-gradient(135deg, #7a2d3b 0%, #963a49 52%, #b04d62 100%);
+      border-color: var(--lam);
+    }
+    .tuile.phare .ico svg { color: #fdf0f2; }
+    .tuile.phare .nom { font-size: 16px; color: var(--lam-dark); }
+
+    /* ── Pastilles ── */
+    .chip {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 2.5px 7px; border-radius: 20px;
+      white-space: nowrap;
+      color: var(--text-3);
+      background: linear-gradient(135deg, #f8f0f1 0%, #f2e8ea 100%);
+      border: 0.5px solid var(--lam-pale2);
+    }
+    .chip.cle { color: var(--warn); background: #f7efe3; border-color: #e0cdb4; }
+
+    /* Hors ligne : tout est inatteignable. On éteint et on affiche le motif,
+       plutôt que de laisser taper sur une tuile qui tournera dans le vide. */
+    body.hors-ligne .tuile { opacity: 0.42; pointer-events: none; }
+    .motif-hors-ligne { display: none; font-size: 11px; color: var(--warn); margin-top: 4px; }
+    body.hors-ligne .motif-hors-ligne { display: block; }
+    body.hors-ligne .tuile .desc { display: none; }
+
+    /* ── Encarts ── */
+    .encart {
+      margin: 1.4rem 0.75rem 0;
+      padding: 0.85rem 0.9rem;
+      background: linear-gradient(135deg, #faf5f6 0%, #f5eff0 100%);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      font-size: 12px; color: var(--text-2); line-height: 1.55;
+    }
+    .encart b { color: var(--lam-dark); font-weight: 700; }
+    body.installee .encart.installer { display: none; }
+
+    .pied {
+      margin: 1.6rem 0.9rem 0;
+      font-size: 11.5px; color: var(--text-3); line-height: 1.6;
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="topbar">
+      <span class="marque" aria-hidden="true">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <rect x="113" y="113" width="286" height="286" fill="none" stroke="#fdf0f2" stroke-width="34"/>
+          <path d="M256 129 V383 M129 256 H383" stroke="#fdf0f2" stroke-width="34"/>
+        </svg>
+      </span>
+      <div class="titre">
+        <h1>LAM</h1>
+        <p>Tous les outils, une seule icône</p>
+      </div>
+      <span class="etat-reseau" id="etatReseau">En ligne</span>
+    </header>
+
+    <main>
+
+      <div class="bandeau-hors-ligne">
+        <strong>Aucun réseau.</strong> Tous les outils LAM sont hébergés chez Google :
+        sans connexion, aucun n'est joignable. Les tuiles sont éteintes pour éviter
+        d'attendre dans le vide. Elles se rallumeront d'elles-mêmes.
+      </div>
+
+      <!-- Toutes les tuiles partent dans un NOUVEL ONGLET : ces pages sont sur
+           script.google.com, docs.google.com ou calendar.google.com — aucune n'est
+           sur le domaine du portail. On va y chercher quelque chose et on en
+           revient. Sans `target`, le portail serait remplacé, et en appli installée
+           il n'y a pas de bouton Précédent pour y retourner.
+           `rel="noopener"` par principe : la page ouverte n'a rien à savoir de
+           celle qui l'ouvre.
+           C'est la différence de fond avec le Portail EKAYE, où « Vendre » et
+           « Découverte » sont sur le domaine et restent dans la fenêtre. -->
+
+      <!-- ── En permanence ────────────────────────────────────────────── -->
+      <section class="groupe">
+        <h2>En permanence</h2>
+        <p class="indice">Les deux gestes de la journée en boutique.</p>
+        <div class="tuiles">
+
+          <a class="tuile phare" target="_blank" rel="noopener"
+             href="https://script.google.com/macros/s/AKfycbwwYt8XcGvrc67vWCl0aLCO5QRDui2bIO5_MN7YhUGP0a0op9o6LmqyxNcmxLveLX2SFA/exec">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18l-1.5 9.5a2 2 0 0 1-2 1.7H6.5a2 2 0 0 1-2-1.7L3 6z"/>
+                <path d="M8 6V4.5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2V6"/>
+                <circle cx="9" cy="20.5" r="1.2" fill="currentColor" stroke="none"/>
+                <circle cx="16" cy="20.5" r="1.2" fill="currentColor" stroke="none"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Enregistrer une vente <span class="chip cle">Clé</span></span>
+              <span class="desc">Panier, paiement, fiche client. Alimente le rapport du soir.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" target="_blank" rel="noopener"
+             href="https://script.google.com/macros/s/AKfycbwwYt8XcGvrc67vWCl0aLCO5QRDui2bIO5_MN7YhUGP0a0op9o6LmqyxNcmxLveLX2SFA/exec?caisse=1">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#963a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="6" width="19" height="12" rx="2"/>
+                <circle cx="12" cy="12" r="2.6"/>
+                <path d="M6 10v4M18 10v4"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Comptage du fond de caisse <span class="chip cle">Clé</span></span>
+              <span class="desc">Ouverture et fermeture, écart, montant à déposer au coffre.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+        </div>
+
+        <div class="encart">
+          <b>La clé d'accès :</b> à la première ouverture sur un téléphone, ces deux outils
+          la demandent. C'est <b>la même pour les deux</b>, et elle n'est demandée
+          qu'une fois par appareil. Si vous ne l'avez pas, demandez-la à Frédéric.
+        </div>
+      </section>
+
+      <!-- ── Consulter ────────────────────────────────────────────────── -->
+      <section class="groupe">
+        <h2>Consulter</h2>
+        <p class="indice">Ouvert à tous les artisans, en lecture.</p>
+        <div class="tuiles deux">
+
+          <a class="tuile" target="_blank" rel="noopener"
+             href="https://docs.google.com/spreadsheets/d/1fV7MFThXzrCnpkSUAXp3UIZD1KjvWBU7qTPEZ3v5exs/edit">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#963a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20V10M9.3 20V4M14.7 20v-7M20 20V7"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Statistiques LAM</span>
+              <span class="desc">Ventes du mois, commissions, panier moyen, chiffres par artisan.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" target="_blank" rel="noopener"
+             href="https://docs.google.com/spreadsheets/d/1f1YPW0zUAqM2ZTVZk4zjlqdI-8AWyvp1/edit">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#963a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Planning des permanences</span>
+              <span class="desc">Qui tient la boutique, mois par mois, et le récapitulatif annuel.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" target="_blank" rel="noopener"
+             href="https://calendar.google.com/calendar/embed?src=67b9782593c679cea57c3ac2c4c3d1b3ef85856b2c2e2ee31302a490e21e9003%40group.calendar.google.com&amp;ctz=Europe%2FParis&amp;mode=MONTH">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#963a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="16" rx="2"/>
+                <path d="M3 10h18M8 3v4M16 3v4"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Agenda des permanences</span>
+              <span class="desc">Le calendrier partagé « Permanance Bergerac », vue du mois.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <a class="tuile" target="_blank" rel="noopener"
+             href="https://script.google.com/macros/s/AKfycbwwYt8XcGvrc67vWCl0aLCO5QRDui2bIO5_MN7YhUGP0a0op9o6LmqyxNcmxLveLX2SFA/exec?carte=1">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#963a49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Carte des origines</span>
+              <span class="desc">Une épingle par ville d'où vient un visiteur de la boutique.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+        </div>
+      </section>
+
+      <div class="encart installer">
+        <b>Une seule icône :</b> ajoutez cette page à votre écran d'accueil
+        (Chrome : menu du navigateur → « Installer l'application » · iPhone : Partager →
+        « Sur l'écran d'accueil »), puis supprimez vos autres raccourcis LAM.
+        Ils restent tous accessibles d'ici.
+      </div>
+
+      <p class="pied">L'Art et la Matière en Périgord — Bergerac</p>
+
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      // État réseau : la même pastille que sur le formulaire de vente et le
+      // comptage, au même endroit. Elle commande aussi l'extinction des tuiles.
+      var pastille = document.getElementById('etatReseau');
+
+      function majReseau() {
+        var enLigne = navigator.onLine;
+        document.body.classList.toggle('hors-ligne', !enLigne);
+        pastille.textContent = enLigne ? 'En ligne' : 'Hors ligne';
+      }
+
+      window.addEventListener('online', majReseau);
+      window.addEventListener('offline', majReseau);
+      majReseau();
+
+      // Le bandeau « ajoutez à l'écran d'accueil » n'a plus de sens une fois
+      // l'application installée : on le retire au lieu de le laisser radoter.
+      var installee = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      if (installee) document.body.classList.add('installee');
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

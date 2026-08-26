@@ -1,0 +1,9 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Portail LAM">
+  <!-- `purpose: maskable` — Android découpe cette icône dans la forme du système
+       (cercle, goutte, carré arrondi). Le motif reste donc dans la zone sûre :
+       un disque de 80 % centré, soit un rayon de 205 px sur 512. D'où une marque
+       plus petite que dans `icone.svg`, et un fond plein qui va jusqu'aux bords. -->
+  <rect width="512" height="512" fill="#8c3044"/>
+  <rect x="150" y="150" width="212" height="212" fill="none" stroke="#faf7f5" stroke-width="26"/>
+  <path d="M256 163 V349 M163 256 H349" stroke="#faf7f5" stroke-width="26"/>
+</svg>

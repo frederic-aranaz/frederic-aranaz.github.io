@@ -1,0 +1,32 @@
+{
+  "name": "Portail LAM",
+  "short_name": "LAM",
+  "description": "Tous les outils de la boutique LAM derrière une seule icône : vente, fond de caisse, statistiques, planning, agenda, carte.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f5",
+  "theme_color": "#8c3044",
+  "icons": [
+    {
+      "src": "icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icone-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
