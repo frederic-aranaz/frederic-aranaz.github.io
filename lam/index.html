@@ -197,6 +197,37 @@
     .encart b { color: var(--lam-dark); font-weight: 700; }
     body.installee .encart.installer { display: none; }
 
+    /* ── Installation ──
+       Chrome n'affiche sa bannière que s'il juge la « fréquentation » suffisante :
+       à la première visite, il ne propose souvent rien. On ne dépend donc pas de
+       lui — on capte l'événement et on offre notre propre bouton.
+       Safari, lui, n'a AUCUN événement d'installation : sur iPhone, le seul chemin
+       est Partager → « Sur l'écran d'accueil ». On l'écrit noir sur blanc plutôt
+       que de laisser chercher. */
+    .installer .geste { display: none; margin-top: 0.6rem; }
+    body.peut-installer .installer .geste.bouton { display: block; }
+    body.ios .installer .geste.ios { display: block; }
+    body.ni-ios-ni-invite .installer .geste.manuel { display: block; }
+
+    .btn-installer {
+      width: 100%;
+      background: linear-gradient(135deg, #7a2d3b 0%, #963a49 52%, #b04d62 100%);
+      color: #fdf0f2; border: none; border-radius: var(--r);
+      padding: 13px; font-size: 15px; font-weight: 600;
+      font-family: var(--font); cursor: pointer;
+      box-shadow: 0 4px 18px rgba(100,25,38,0.28);
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+    }
+    .btn-installer svg { width: 18px; height: 18px; }
+    .btn-installer:active { transform: translateY(1px); }
+
+    .geste.ios ol { margin: 0.2rem 0 0 1.1rem; padding: 0; }
+    .geste.ios li { margin-bottom: 3px; }
+    .glyphe-partage {
+      display: inline-flex; vertical-align: -3px; margin: 0 1px;
+      width: 15px; height: 15px; color: var(--lam);
+    }
+
     .pied {
       margin: 1.6rem 0.9rem 0;
       font-size: 11.5px; color: var(--text-3); line-height: 1.6;
@@ -377,10 +408,38 @@
       </section>
 
       <div class="encart installer">
-        <b>Une seule icône :</b> ajoutez cette page à votre écran d'accueil
-        (Chrome : menu du navigateur → « Installer l'application » · iPhone : Partager →
-        « Sur l'écran d'accueil »), puis supprimez vos autres raccourcis LAM.
-        Ils restent tous accessibles d'ici.
+        <b>Une seule icône :</b> ajoutez cette page à votre écran d'accueil, puis supprimez
+        vos autres raccourcis LAM. Ils restent tous accessibles d'ici.
+
+        <div class="geste bouton">
+          <button type="button" class="btn-installer" id="boutonInstaller">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/>
+            </svg>
+            Installer l'application
+          </button>
+        </div>
+
+        <div class="geste ios">
+          Sur iPhone, l'installation ne se propose jamais toute seule — il faut la demander :
+          <ol>
+            <li>Touchez
+              <span class="glyphe-partage" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 16V3"/><path d="M8 7l4-4 4 4"/>
+                  <path d="M4 12v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8"/>
+                </svg>
+              </span>
+              <b>Partager</b>, en bas de Safari.</li>
+            <li>Faites défiler, puis <b>« Sur l'écran d'accueil »</b>.</li>
+            <li><b>Ajouter</b>, en haut à droite.</li>
+          </ol>
+        </div>
+
+        <div class="geste manuel">
+          Depuis le menu de votre navigateur : <b>« Installer l'application »</b> ou
+          <b>« Ajouter à l'écran d'accueil »</b>.
+        </div>
       </div>
 
       <p class="pied">L'Art et la Matière en Périgord — Bergerac</p>
@@ -409,6 +468,63 @@
       var installee = window.matchMedia('(display-mode: standalone)').matches
         || window.navigator.standalone === true;
       if (installee) document.body.classList.add('installee');
+
+      /* ── Installation ──────────────────────────────────────────────────
+         Trois cas, trois consignes différentes, une seule affichée :
+
+         1. Le navigateur nous propose l'installation → notre propre bouton.
+            On n'attend pas sa bannière : Chrome ne l'affiche qu'au bout d'une
+            « fréquentation » suffisante, donc rarement à la première visite.
+            C'est exactement ce qui s'est passé le 26/08 — page ouverte, rien
+            de proposé, et l'impression que le portail ne s'installe pas.
+
+         2. iPhone → il n'existe AUCUN événement d'installation sur iOS, et il
+            n'en existera pas. Safari n'a que Partager → « Sur l'écran d'accueil ».
+            Autant l'écrire, avec le geste exact.
+
+         3. Ni l'un ni l'autre → renvoyer au menu du navigateur.
+
+         Le cas 3 n'est affiché qu'après un court délai : `beforeinstallprompt`
+         arrive parfois un instant après le chargement, et montrer « allez dans
+         le menu » pour le remplacer une seconde plus tard par un bouton serait
+         pire que de ne rien dire. */
+      var invite = null;
+      var bouton = document.getElementById('boutonInstaller');
+
+      var estIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        // iPadOS 13+ se déclare « Macintosh » : le tactile le trahit.
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (estIOS && !installee) document.body.classList.add('ios');
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();          // sinon la bannière du navigateur double la nôtre
+        invite = e;
+        document.body.classList.remove('ni-ios-ni-invite');
+        document.body.classList.add('peut-installer');
+      });
+
+      bouton.addEventListener('click', function () {
+        if (!invite) return;
+        invite.prompt();
+        invite.userChoice.then(function () {
+          // Une invite ne se rejoue pas : le bouton n'a plus rien à offrir.
+          invite = null;
+          document.body.classList.remove('peut-installer');
+        });
+      });
+
+      window.addEventListener('appinstalled', function () {
+        invite = null;
+        document.body.classList.remove('peut-installer', 'ni-ios-ni-invite', 'ios');
+        document.body.classList.add('installee');
+      });
+
+      if (!estIOS && !installee) {
+        setTimeout(function () {
+          if (!invite) document.body.classList.add('ni-ios-ni-invite');
+        }, 1200);
+      }
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {

@@ -21,7 +21,8 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v1';   // v1 : création du portail (26/08/2026)
+var VERSION = 'v2';   // v2 : bouton d'installation, consigne iPhone, icônes 192/512 (26/08/2026)
+                      // v1 : création du portail (26/08/2026)
 var CACHE = 'lam-portail-' + VERSION;
 
 var FICHIERS = [
@@ -30,6 +31,9 @@ var FICHIERS = [
   'manifest.webmanifest',
   'icone.svg',
   'icone-maskable.svg',
+  'icone-192.png',
+  'icone-512.png',
+  'icone-maskable-512.png',
   'apple-touch-icon.png'
 ];
 
