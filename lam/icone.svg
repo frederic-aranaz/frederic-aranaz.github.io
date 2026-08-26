@@ -1,7 +1,0 @@
-<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Portail LAM">
-  <!-- Fenêtre à quatre carreaux, en plomb bordeaux. Distincte du losange ambre
-       d'EKAYE sur l'écran d'accueil : même main, deux maisons différentes.
-       `purpose: any` — fond transparent, le système pose ce qu'il veut derrière. -->
-  <rect x="113" y="113" width="286" height="286" fill="none" stroke="#8c3044" stroke-width="32"/>
-  <path d="M256 129 V383 M129 256 H383" stroke="#8c3044" stroke-width="32"/>
-</svg>
