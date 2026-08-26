@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v2';   // v2 : liens Google en nouvel onglet (24/08/2026)
+var VERSION = 'v3';   // v3 : tuile Trello + le ménage des caches ne touche plus
+                      //      qu'aux nôtres (26/08/2026)
+                      // v2 : liens Google en nouvel onglet (24/08/2026)
                       // v1 : création du portail (24/08/2026)
 var CACHE = 'ekaye-portail-' + VERSION;
 
@@ -52,7 +54,14 @@ self.addEventListener('activate', function (e) {
     caches.keys()
       .then(function (noms) {
         return Promise.all(noms.map(function (nom) {
-          if (nom !== CACHE) return caches.delete(nom);
+          // Le préfixe n'est pas un détail : `caches` est partagé par TOUTE
+          // l'origine. Sans lui, activer une nouvelle version du portail
+          // effaçait aussi les caches de la page de vente, de Découverte et du
+          // portail LAM — c'est-à-dire exactement ce que ce worker existe pour
+          // protéger. Même précaution que dans `lam/sw.js`.
+          if (nom !== CACHE && nom.indexOf('ekaye-portail-') === 0) {
+            return caches.delete(nom);
+          }
         }));
       })
       .then(function () { return self.clients.claim(); })
