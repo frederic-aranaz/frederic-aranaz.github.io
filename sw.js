@@ -17,7 +17,8 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v3';   // v3 : tuile Trello + le ménage des caches ne touche plus
+var VERSION = 'v4';   // v4 : tuile Pointage, après Inventaire (28/08/2026)
+                      // v3 : tuile Trello + le ménage des caches ne touche plus
                       //      qu'aux nôtres (26/08/2026)
                       // v2 : liens Google en nouvel onglet (24/08/2026)
                       // v1 : création du portail (24/08/2026)
