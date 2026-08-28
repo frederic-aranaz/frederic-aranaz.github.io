@@ -17,7 +17,8 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v4';   // v4 : tuile Pointage, après Inventaire (28/08/2026)
+var VERSION = 'v5';   // v5 : Étiquettes QR en fin de « À l'atelier » (28/08/2026)
+                      // v4 : tuile Pointage, après Inventaire (28/08/2026)
                       // v3 : tuile Trello + le ménage des caches ne touche plus
                       //      qu'aux nôtres (26/08/2026)
                       // v2 : liens Google en nouvel onglet (24/08/2026)
