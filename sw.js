@@ -17,7 +17,10 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v5';   // v5 : Étiquettes QR en fin de « À l'atelier » (28/08/2026)
+var VERSION = 'v6';   // v6 : icône = l'emblème EKAYE du logo, ambre sur fond
+                      //      sombre, à la place du losange ; la marque du bandeau
+                      //      en reprend le bloc central (04/09/2026)
+                      // v5 : Étiquettes QR en fin de « À l'atelier » (28/08/2026)
                       // v4 : tuile Pointage, après Inventaire (28/08/2026)
                       // v3 : tuile Trello + le ménage des caches ne touche plus
                       //      qu'aux nôtres (26/08/2026)

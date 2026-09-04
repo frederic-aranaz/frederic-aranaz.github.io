@@ -1,8 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Inverse de l'icône Découverte (fond sombre, losange ambre) : sur l'écran
-       d'accueil, le portail se distingue au premier coup d'œil des applis qu'il
-       ouvre, tout en restant de la même famille. -->
-  <rect width="512" height="512" rx="96" fill="#c9882a"/>
-  <path d="M256 88 L424 256 L256 424 L88 256 Z" fill="none" stroke="#141210" stroke-width="30" stroke-linejoin="round"/>
-  <path d="M256 176 L336 256 L256 336 L176 256 Z" fill="#141210"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Portail EKAYE">
+  <!-- L'emblème EKAYE : le glyphe qui précède le mot dans le logo de la marque.
+       Relevé au pixel près sur `Design EKAYE/LOGO-EKAYE-*.png` (où il occupe
+       57 x 186 px), chaque arête ajustée en droite, puis remis à l'échelle ici :
+       0,15 % d'écart avec l'original, et net à n'importe quelle taille.
+
+       Fond sombre, motif ambre — même palette que Découverte, dont c'est
+       désormais la FORME qui le distingue sur l'écran d'accueil : là un losange,
+       ici le totème de la marque. -->
+  <rect width="512" height="512" rx="96" fill="#141210"/>
+  <path fill="#c9882a" d="M194.71 56.0 L222.67 56.0 L222.67 133.42 L194.71 133.42 Z M242.02 56.0 L269.98 56.0 L269.98 133.42 L242.02 133.42 Z M289.33 56.0 L317.29 56.0 L317.29 133.42 L289.33 133.42 Z M194.71 378.58 L222.67 378.58 L222.67 456.0 L194.71 456.0 Z M242.02 378.58 L269.98 378.58 L269.98 456.0 L242.02 456.0 Z M289.33 378.58 L317.29 378.58 L317.29 456.0 L289.33 456.0 Z M225.29 157.08 L317.29 157.08 L317.29 229.7 Z M194.71 161.29 L230.73 189.2 L194.71 231.42 Z M246.32 204.58 L199.31 259.72 L246.32 315.4 Z M265.68 217.05 L316.06 256.82 L265.68 315.05 Z M194.71 288.28 L251.38 354.92 L194.71 354.92 Z M317.29 288.86 L317.29 354.92 L260.84 354.92 Z"/>
 </svg>

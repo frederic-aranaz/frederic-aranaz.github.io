@@ -71,7 +71,7 @@
       background: rgba(201,136,42,0.15);
       border: 1px solid rgba(201,136,42,0.3);
     }
-    .marque svg { width: 22px; height: 22px; display: block; }
+    .marque svg { width: 10px; height: 30px; display: block; }
     .titre h1 {
       font-size: 15px; font-weight: 600; color: #e8d8b0;
       letter-spacing: 0.14em;
@@ -213,9 +213,13 @@
 
     <header class="topbar">
       <span class="marque" aria-hidden="true">
-        <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M256 96 L400 256 L256 416 L112 256 Z" fill="none" stroke="#c9882a" stroke-width="30" stroke-linejoin="round"/>
-          <path d="M256 172 L340 256 L256 340 L172 256 Z" fill="#c9882a"/>
+        <!-- L'emblème EKAYE entier, comme l'icône — même tracé, même origine
+             (voir `icone.svg`). Il est très vertical (57 x 186), d'où la boîte
+             haute et étroite ci-dessus plutôt que le carré de 22 : à hauteur
+             égale au carré, les barres et leurs réserves passaient sous le
+             pixel. Ici la boîte prend toute la hauteur que le badge autorise. -->
+        <svg viewBox="0 0 57 186" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#c9882a" d="M0.0 0.0 L13.0 0.0 L13.0 36.0 L0.0 36.0 Z M22.0 0.0 L35.0 0.0 L35.0 36.0 L22.0 36.0 Z M44.0 0.0 L57.0 0.0 L57.0 36.0 L44.0 36.0 Z M0.0 150.0 L13.0 150.0 L13.0 186.0 L0.0 186.0 Z M22.0 150.0 L35.0 150.0 L35.0 186.0 L22.0 186.0 Z M44.0 150.0 L57.0 150.0 L57.0 186.0 L44.0 186.0 Z M14.22 47.0 L57.0 47.0 L57.0 80.77 Z M0.0 48.96 L16.75 61.94 L0.0 81.57 Z M24.0 69.09 L2.14 94.73 L24.0 120.62 Z M33.0 74.89 L56.43 93.38 L33.0 120.46 Z M0.0 108.01 L26.35 139.0 L0.0 139.0 Z M57.0 108.28 L57.0 139.0 L30.75 139.0 Z"/>
         </svg>
       </span>
       <div class="titre">

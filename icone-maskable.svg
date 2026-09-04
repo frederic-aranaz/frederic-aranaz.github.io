@@ -1,8 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Portail EKAYE">
   <!-- Version « maskable » : Android recadre l'icône en cercle, en goutte ou en
-       carré selon le lanceur. Le motif reste donc dans les 80 % centraux, le
-       fond ambre déborde jusqu'aux bords pour ne jamais laisser de coin vide. -->
-  <rect width="512" height="512" fill="#c9882a"/>
-  <path d="M256 128 L384 256 L256 384 L128 256 Z" fill="none" stroke="#141210" stroke-width="26" stroke-linejoin="round"/>
-  <path d="M256 196 L316 256 L256 316 L196 256 Z" fill="#141210"/>
+       carré selon le lanceur. Le fond sombre déborde donc jusqu'aux bords, et
+       l'emblème est réduit à 372 de haut pour tenir dans le cercle de sûreté
+       (80 % de 512) malgré sa forme très verticale.
+       Même tracé que `icone.svg` — voir là-bas pour son origine. -->
+  <rect width="512" height="512" fill="#141210"/>
+  <path fill="#c9882a" d="M199.0 70.0 L225.0 70.0 L225.0 142.0 L199.0 142.0 Z M243.0 70.0 L269.0 70.0 L269.0 142.0 L243.0 142.0 Z M287.0 70.0 L313.0 70.0 L313.0 142.0 L287.0 142.0 Z M199.0 370.0 L225.0 370.0 L225.0 442.0 L199.0 442.0 Z M243.0 370.0 L269.0 370.0 L269.0 442.0 L243.0 442.0 Z M287.0 370.0 L313.0 370.0 L313.0 442.0 L287.0 442.0 Z M227.44 164.0 L313.0 164.0 L313.0 231.54 Z M199.0 167.92 L232.5 193.88 L199.0 233.14 Z M247.0 208.18 L203.28 259.46 L247.0 311.24 Z M265.0 219.78 L311.86 256.76 L265.0 310.92 Z M199.0 286.02 L251.7 348.0 L199.0 348.0 Z M313.0 286.56 L313.0 348.0 L260.5 348.0 Z"/>
 </svg>
