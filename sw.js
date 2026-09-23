@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v6';   // v6 : icône = l'emblème EKAYE du logo, ambre sur fond
+var VERSION = 'v7';   // v7 : tuile Gabarits vitrail en fin de « À l'atelier »
+                      //      (23/09/2026)
+                      // v6 : icône = l'emblème EKAYE du logo, ambre sur fond
                       //      sombre, à la place du losange ; la marque du bandeau
                       //      en reprend le bloc central (04/09/2026)
                       // v5 : Étiquettes QR en fin de « À l'atelier » (28/08/2026)

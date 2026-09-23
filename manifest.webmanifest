@@ -1,7 +1,7 @@
 {
   "name": "Portail EKAYE",
   "short_name": "EKAYE",
-  "description": "Tous les outils EKAYE derrière une seule icône : vente, découverte, inventaire, carte, étiquettes.",
+  "description": "Tous les outils EKAYE derrière une seule icône : vente, découverte, inventaire, carte, étiquettes, gabarits vitrail.",
   "lang": "fr",
   "start_url": "./",
   "scope": "/",

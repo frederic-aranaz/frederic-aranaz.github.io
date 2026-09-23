@@ -427,6 +427,28 @@
             </span>
           </a>
 
+          <!-- Gabarits vitrail : sur le domaine, donc PAS de target — elle s'ouvre
+               dans la fenêtre du portail, comme Vendre et Découverte, et son en-tête
+               porte un bouton de retour au portail. Mais elle porte data-reseau :
+               aucun service worker ne la met en cache, hors ligne elle ne s'ouvrirait
+               pas. Seule tuile où les deux attributs ne vont pas ensemble. -->
+          <a class="tuile" data-reseau href="https://frederic-aranaz.github.io/ekaye-gabarits-vitrail/">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 10c5-2 10 2 18-1M10 3l1.5 7.5M15 9.5 13 21M3 16l10-1"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Gabarits vitrail <span class="chip bureau">Ordinateur</span></span>
+              <span class="desc">DXF Fusion 360 → gabarits numérotés, imbriqués, exportés pour la Cameo ; carton 1:1.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
         </div>
       </section>
 
