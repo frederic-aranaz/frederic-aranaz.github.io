@@ -4,20 +4,37 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test 3D Madeleine V.</title>
+<title>Test 3D EKAYE</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
   body { margin: 0; font-family: system-ui, sans-serif; background: #f4f1ec; }
-  model-viewer { width: 100%; height: 90vh; }
+  .choix { display: flex; gap: 8px; justify-content: center; padding: 12px 16px 0; }
+  .choix button { padding: 10px 18px; border: 1px solid #272727; border-radius: 20px;
+                  background: transparent; color: #272727; font-size: 15px; }
+  .choix button[aria-pressed="true"] { background: #272727; color: #fff; }
+  model-viewer { width: 100%; height: calc(100vh - 60px); }
   .ar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
         padding: 12px 20px; border: 0; border-radius: 24px; background: #272727; color: #fff; font-size: 16px; }
 </style>
 </head>
 <body>
+<div class="choix">
+  <button data-src="madeleine-v.glb" data-alt="Lampe Madeleine V. en 3D" aria-pressed="true">Madeleine V.</button>
+  <button data-src="clara-d.glb" data-alt="Lampe Clara D. en 3D" aria-pressed="false">Clara D.</button>
+</div>
 <model-viewer src="madeleine-v.glb" alt="Lampe Madeleine V. en 3D"
               ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed"
               camera-controls auto-rotate shadow-intensity="1" exposure="1.1">
   <button slot="ar-button" class="ar">Voir chez moi</button>
 </model-viewer>
+<script>
+  const mv = document.querySelector('model-viewer');
+  const boutons = document.querySelectorAll('.choix button');
+  boutons.forEach(b => b.addEventListener('click', () => {
+    mv.src = b.dataset.src;
+    mv.alt = b.dataset.alt;
+    boutons.forEach(x => x.setAttribute('aria-pressed', x === b));
+  }));
+</script>
 </body>
 </html>
