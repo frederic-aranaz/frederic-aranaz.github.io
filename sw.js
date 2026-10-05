@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v9';   // v9 : tuile Stock Atelier en fin de « À l'atelier »
+var VERSION = 'v10';  // v10 : tuile Classeur Stock Atelier, après les deux
+                      //       autres classeurs (05/10/2026)
+                      // v9 : tuile Stock Atelier en fin de « À l'atelier »
                       //      (05/10/2026)
                       // v8 : tuile Pointage vers la page de scan de
                       //      ekaye-vente-scan (25/09/2026)
