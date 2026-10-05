@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v12';  // v12 : tuile Stock Atelier remontée sous Pointage
+var VERSION = 'v13';  // v13 : tuile « À commander » sous Stock Atelier
+                      //       (05/10/2026)
+                      // v12 : tuile Stock Atelier remontée sous Pointage
                       //       (05/10/2026)
                       // v11 : tuile Stock Atelier déplacée dans « Consulter »
                       //       (05/10/2026)

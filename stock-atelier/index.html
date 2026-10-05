@@ -387,7 +387,14 @@
   }
 
   /* ── Onglets ───────────────────────────────────────────────────────────── */
-  var ongletCourant = 'reception';
+  /* Un onglet peut être ouvert d'emblée par l'adresse : /stock-atelier/#commander est la
+     tuile « À commander » du portail. */
+  var ONGLETS = ['reception', 'sortie', 'inventaire', 'commander', 'nouveau'];
+  var ongletCourant = ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'reception';
+  window.addEventListener('hashchange', function () {
+    var n = location.hash.slice(1);
+    if (ONGLETS.indexOf(n) >= 0) afficher(n);
+  });
   function afficher(nom) {
     ongletCourant = nom;
     ['reception', 'sortie', 'inventaire', 'commander', 'nouveau'].forEach(function (n) {
