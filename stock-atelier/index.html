@@ -150,6 +150,9 @@
     <div class="carte">
       <h2>Livraison</h2>
       <div data-quantite="reception"></div>
+      <label for="r-prix" id="r-prix-libelle">Prix d'achat unitaire (€)</label>
+      <input type="number" id="r-prix" min="0" step="any" inputmode="decimal" placeholder="facultatif">
+      <p class="aide" id="r-prix-aide">Devient le prix de l'article : il sert à la valeur du stock.</p>
       <div class="ligne">
         <div><label for="r-date">Date de réception</label><input type="date" id="r-date"></div>
         <div><label for="r-fournisseur">Fournisseur</label><input id="r-fournisseur" list="liste-fournisseurs" autocomplete="off"></div>
@@ -216,8 +219,10 @@
         <div><label for="n-fournisseur">Fournisseur</label><input id="n-fournisseur" list="liste-fournisseurs" autocomplete="off"></div>
       </div>
       <div id="n-specifiques"></div>
-      <label for="n-unite">Unité de stock</label>
-      <input id="n-unite" autocomplete="off">
+      <div class="ligne">
+        <div><label for="n-unite">Unité de stock</label><input id="n-unite" autocomplete="off"></div>
+        <div><label for="n-prix">Prix d'achat unitaire (€)</label><input type="number" id="n-prix" min="0" step="any" inputmode="decimal" placeholder="facultatif"></div>
+      </div>
       <button class="btn" id="n-valider">Créer l'article</button>
       <p class="aide">Une fois créé, il est proposé directement à la réception.</p>
     </div>
@@ -291,6 +296,12 @@
   }
   function nombre(n) {
     return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  }
+  function prixTexte(a) {
+    var fam = famille(a.famille);
+    return fam && fam.parSurface
+      ? Number(a.prix).toLocaleString('fr-FR', { maximumFractionDigits: 5 }) + ' €/cm²'
+      : Number(a.prix).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
   }
   function famille(nom) {
     for (var i = 0; i < etat.familles.length; i++) if (etat.familles[i].nom === nom) return etat.familles[i];
@@ -377,7 +388,8 @@
     if (a) {
       boite.innerHTML = '<div class="choisi"><div class="info"><div class="nom">' + echapper(a.designation) + '</div>' +
         '<div class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) +
-        ' — en stock : <strong>' + nombre(a.stock) + ' ' + echapper(a.unite) + '</strong></div></div>' +
+        ' — en stock : <strong>' + nombre(a.stock) + ' ' + echapper(a.unite) + '</strong>' +
+        (a.prix ? ' · ' + prixTexte(a) : '') + '</div></div>' +
         '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>';
     } else {
       boite.innerHTML = '<input type="search" placeholder="Chercher : nom, réf, marque, famille…" data-recherche="' + zone + '" autocomplete="off">' +
@@ -387,6 +399,11 @@
     dessinerQuantite(zone);
     if (zone === 'reception') {
       if (a && a.fournisseur && !$('r-fournisseur').value) $('r-fournisseur').value = a.fournisseur;
+      var verre = a && famille(a.famille) && famille(a.famille).parSurface;
+      $('r-prix-libelle').textContent = verre ? 'Prix payé pour ces morceaux (€)' : "Prix d'achat unitaire (€)" + (a ? ' — par ' + a.unite : '');
+      $('r-prix-aide').textContent = verre ? 'Ramené au cm², il devient le prix de cet article de verre.'
+        : "Devient le prix de l'article : il sert à la valeur du stock.";
+      $('r-prix').value = (a && a.prix && !verre) ? a.prix : '';
     }
     if (zone === 'inventaire') {
       var surface = a && famille(a.famille) && famille(a.famille).parSurface;
@@ -538,7 +555,8 @@
     lireFacture(fichier).then(function (facture) {
       var data = Object.assign({ ref: a.ref, type: 'Entrée', date: $('r-date').value,
         fournisseur: $('r-fournisseur').value.trim(), numeroFacture: $('r-numero').value.trim(),
-        motif: $('r-motif').value.trim(), facture: facture }, q);
+        motif: $('r-motif').value.trim(), facture: facture,
+        prix: $('r-prix').value === '' ? '' : Number($('r-prix').value) }, q);
       return appel('mouvement', data);
     }).then(function (rep) {
       var lien = rep.facture ? ' · <a href="' + echapper(rep.facture.url) + '" target="_blank" rel="noopener">facture rangée</a>' : '';
@@ -547,7 +565,8 @@
       var f = $('r-fournisseur').value.trim();
       if (f && etat.fournisseurs.indexOf(f) < 0) { etat.fournisseurs.push(f); remplirFournisseurs(); }
       if (f && !a.fournisseur) a.fournisseur = f;
-      ['r-numero', 'r-motif', 'r-fournisseur'].forEach(function (id) { $(id).value = ''; });
+      if (rep.prix !== '' && rep.prix != null) a.prix = rep.prix;
+      ['r-numero', 'r-motif', 'r-fournisseur', 'r-prix'].forEach(function (id) { $(id).value = ''; });
       $('r-facture').value = '';
       apresMouvement('reception', rep);
     }).catch(function (err) { message(err.message, 'erreur'); })
@@ -627,11 +646,12 @@
     var bouton = this;
     occupe(bouton, true);
     appel('article', { famille: etat.familleNouveau, designation: designation, marque: $('n-marque').value.trim(),
-      fournisseur: $('n-fournisseur').value.trim(), unite: $('n-unite').value.trim(), details: details })
+      fournisseur: $('n-fournisseur').value.trim(), unite: $('n-unite').value.trim(), details: details,
+      prix: $('n-prix').value === '' ? '' : Number($('n-prix').value) })
       .then(function (rep) {
         etat.articles = rep.articles || etat.articles;
         message('Article créé : ' + rep.ref + ' — ' + designation + '. Saisis maintenant sa réception.', 'ok');
-        ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite'].forEach(function (id) { $(id).value = ''; });
+        ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite', 'n-prix'].forEach(function (id) { $(id).value = ''; });
         delete $('n-unite').dataset.modifie;
         etat.choix.reception = rep.ref;
         dessinerFamillesNouveau();
