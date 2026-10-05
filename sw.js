@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v13';  // v13 : tuile « À commander » sous Stock Atelier
+var VERSION = 'v14';  // v14 : tuile « À commander » retirée (les alertes passent
+                      //       par Trello et le brief du matin) (05/10/2026)
+                      // v13 : tuile « À commander » sous Stock Atelier
                       //       (05/10/2026)
                       // v12 : tuile Stock Atelier remontée sous Pointage
                       //       (05/10/2026)
