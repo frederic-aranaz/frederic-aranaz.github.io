@@ -327,6 +327,14 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  /* « 40 pièces », « 3 rouleaux », « 2 lots de 100 » ; cm², kg, mL restent invariables. */
+  var INVARIABLES = /^(kg|g|mg|cm|cm²|mm|m²|mL|ml|cl|L|l|m)$|[sx]$/;
+  function quantite(n, unite) {
+    var u = String(unite || '');
+    if (!u || Math.abs(Number(n)) < 2 || INVARIABLES.test(u)) return nombre(n) + (u ? ' ' + u : '');
+    var pl = /^\S*eau( |$)/.test(u) ? u.replace(/^(\S*eau)/, '$1x') : u.replace(/^(\S+)/, '$1s');
+    return nombre(n) + ' ' + pl;
+  }
   function nombre(n) {
     return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
   }
@@ -418,7 +426,7 @@
     return '<button type="button" class="article" data-ref="' + echapper(a.ref) + '">' +
       '<span class="info"><span class="nom">' + echapper(a.designation) + '</span>' +
       '<span class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) + '</span></span>' +
-      '<span class="stock' + (estBas(a) ? ' bas' : '') + '">' + nombre(a.stock) + ' ' + echapper(a.unite) + '</span></button>';
+      '<span class="stock' + (estBas(a) ? ' bas' : '') + '">' + echapper(quantite(a.stock, a.unite)) + '</span></button>';
   }
 
   function dessinerChoix(zone) {
@@ -428,7 +436,7 @@
     if (a) {
       boite.innerHTML = '<div class="choisi"><div class="info"><div class="nom">' + echapper(a.designation) + '</div>' +
         '<div class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) +
-        ' — en stock : <strong>' + nombre(a.stock) + ' ' + echapper(a.unite) + '</strong>' +
+        ' — en stock : <strong>' + echapper(quantite(a.stock, a.unite)) + '</strong>' +
         (a.prix ? ' · ' + prixTexte(a) : '') + '</div></div>' +
         '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>';
     } else {
@@ -600,8 +608,8 @@
       return appel('mouvement', data);
     }).then(function (rep) {
       var lien = rep.facture ? ' · <a href="' + echapper(rep.facture.url) + '" target="_blank" rel="noopener">facture rangée</a>' : '';
-      message('Réception enregistrée : +' + nombre(rep.quantite) + ' ' + echapper(a.unite) + ' de ' + echapper(a.designation) +
-        ' — stock ' + nombre(rep.stock) + lien, 'ok', true);
+      message('Réception enregistrée : +' + echapper(quantite(rep.quantite, a.unite)) + ' de ' + echapper(a.designation) +
+        ' — stock ' + echapper(quantite(rep.stock, a.unite)) + lien, 'ok', true);
       var f = $('r-fournisseur').value.trim();
       if (f && etat.fournisseurs.indexOf(f) < 0) { etat.fournisseurs.push(f); remplirFournisseurs(); }
       if (f && !a.fournisseur) a.fournisseur = f;
@@ -621,7 +629,7 @@
     occupe(bouton, true);
     appel('mouvement', Object.assign({ ref: a.ref, type: 'Sortie', motif: $('s-motif').value.trim() }, q))
       .then(function (rep) {
-        message('Sortie enregistrée : −' + nombre(rep.quantite) + ' ' + a.unite + ' de ' + a.designation + ' — stock ' + nombre(rep.stock), 'ok');
+        message('Sortie enregistrée : −' + quantite(rep.quantite, a.unite) + ' de ' + a.designation + ' — stock ' + quantite(rep.stock, a.unite), 'ok');
         $('s-motif').value = '';
         apresMouvement('sortie', rep);
         dessinerCommander();
@@ -637,8 +645,8 @@
     var bouton = this;
     occupe(bouton, true);
     appel('inventaire', { ref: a.ref, compte: Number(v) }).then(function (rep) {
-      message(rep.ecart ? 'Inventaire enregistré : écart de ' + (rep.ecart > 0 ? '+' : '') + nombre(rep.ecart) + ' ' + a.unite + ' — stock ' + nombre(rep.stock)
-                        : 'Stock confirmé : ' + nombre(rep.stock) + ' ' + a.unite + ', aucun écart.', 'ok');
+      message(rep.ecart ? 'Inventaire enregistré : écart de ' + (rep.ecart > 0 ? '+' : '') + quantite(rep.ecart, a.unite) + ' — stock ' + quantite(rep.stock, a.unite)
+                        : 'Stock confirmé : ' + quantite(rep.stock, a.unite) + ', aucun écart.', 'ok');
       apresMouvement('inventaire', rep);
     }).catch(function (err) { message(err.message, 'erreur'); })
       .then(function () { occupe(bouton, false); });
@@ -652,7 +660,7 @@
     badge.textContent = liste.length;
     $('liste-commander').innerHTML = liste.length ? liste.map(function (a) {
       return '<div class="commande"><div class="info"><div class="nom">' + echapper(a.designation) + '</div>' +
-        '<div class="meta">' + echapper(a.ref) + ' · stock ' + nombre(a.stock) + ' / seuil ' + nombre(a.seuil) + ' ' + echapper(a.unite) +
+        '<div class="meta">' + echapper(a.ref) + ' · stock ' + nombre(a.stock) + ' / seuil ' + echapper(quantite(a.seuil, a.unite)) +
         (a.fournisseur ? ' · ' + echapper(a.fournisseur) : '') + '</div></div>' +
         (a.lien ? '<a class="icone-btn" href="' + echapper(a.lien) + '" target="_blank" rel="noopener">Commander</a>' : '') + '</div>';
     }).join('') : '<div class="vide">Rien à commander : tout est au-dessus du seuil.</div>';
