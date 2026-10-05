@@ -262,26 +262,52 @@
   /* Tous les appels passent ici. text/plain évite la requête préalable CORS, qu'Apps
      Script ne sait pas servir. Réponse lue en texte d'abord : une page HTML de Google
      (ré-autorisation) ne doit pas finir en « Unexpected token '<' ». */
-  function appel(action, data, dejaRedemande) {
+  /* Google renvoie parfois un 404 alors que le script a bien tourné (constaté le 05/10) :
+     on réessaie, jusqu'à ESSAIS fois. Une écriture porte un jeton unique, le même à chaque
+     essai : le serveur resservira le résultat déjà obtenu au lieu d'enregistrer deux fois. */
+  var ESSAIS = 3;
+  function nouveauJeton() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function appel(action, data, dejaRedemande, jeton, essai) {
     var cle = cleAcces(false);
     if (!cle) return Promise.reject(new Error("Clé d'accès requise."));
+    if (action !== 'articles' && !jeton) jeton = nouveauJeton();
+    essai = essai || 1;
     return fetch(urlApi(), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: action, cle: cle, data: data || {} })
+      body: JSON.stringify({ action: action, cle: cle, data: data || {}, jeton: jeton || '' })
     }).then(function (r) {
       return r.text().then(function (t) {
         try { return JSON.parse(t); }
-        catch (e) { throw new Error('Réponse illisible du serveur (HTTP ' + r.status + ').'); }
+        catch (e) {
+          var err = new Error('Réponse illisible du serveur (HTTP ' + r.status + ').');
+          err.reessayer = true;
+          throw err;
+        }
       });
+    }, function () {
+      var err = new Error('Réseau indisponible.');
+      err.reessayer = true;
+      throw err;
     }).then(function (rep) {
       if (rep && rep.authRefusee) {
         effacer(CLE_STOCKAGE);
-        if (!dejaRedemande && cleAcces(true)) return appel(action, data, true);
+        if (!dejaRedemande && cleAcces(true)) return appel(action, data, true, jeton);
         throw new Error("Clé d'accès refusée.");
       }
       if (rep && rep.erreur) throw new Error(rep.erreur);
+      if (essai > 1 && etat.familles.length) {
+        $('etat').textContent = etat.articles.length + ' articles · ' + etat.familles.length + ' familles';
+      }
       return rep;
+    }).catch(function (err) {
+      if (!err.reessayer || essai >= ESSAIS) throw err;
+      $('etat').textContent = 'Google ne répond pas bien, nouvel essai (' + (essai + 1) + '/' + ESSAIS + ')…';
+      return new Promise(function (ok) { setTimeout(ok, 1500 * essai); })
+        .then(function () { return appel(action, data, dejaRedemande, jeton, essai + 1); });
     });
   }
 
