@@ -98,6 +98,12 @@
       font: 13px var(--font); cursor: pointer; }
     .pastilles button.actif { background: var(--ek); color: #fff; border-color: var(--ek); }
 
+    /* Articles qui ressemblent à celui qu'on s'apprête à créer */
+    .ressemblants { margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(224,160,90,0.08); border-left: 2px solid rgba(224,160,90,0.6); }
+    .ressemblants p { font-size: 13px; color: var(--orange); margin-bottom: 6px; line-height: 1.4; }
+    .ressemblants .article { background: var(--bg-card); }
+    .ressemblants .utiliser { font-size: 12px; color: var(--ek-clair); white-space: nowrap; }
     .vide { color: var(--text-3); font-size: 13px; padding: 18px 0; text-align: center; }
     .commande { display: flex; gap: 10px; align-items: center; padding: 10px 0;
       border-bottom: 0.5px solid var(--border); }
@@ -214,6 +220,7 @@
       <div class="pastilles" id="n-familles"></div>
       <label for="n-designation">Désignation</label>
       <input id="n-designation" autocomplete="off" placeholder="ex. Ampoule E14 calotte cuivre">
+      <div id="n-ressemblants" class="ressemblants" hidden></div>
       <div class="ligne">
         <div><label for="n-marque">Marque</label><input id="n-marque" autocomplete="off"></div>
         <div><label for="n-fournisseur">Fournisseur</label><input id="n-fournisseur" list="liste-fournisseurs" autocomplete="off"></div>
@@ -664,10 +671,81 @@
   });
   $('n-unite').addEventListener('input', function () { this.dataset.modifie = '1'; });
 
+  /* ── Doublons : « Ampoule calotte E14 Cuivre » et « Ampoule E14 calotte cuivre » sont le
+     même article (05/10, AMP-002 / AMP-003). On compare les MOTS, sans ordre, sans accents
+     ni majuscules, en ignorant les petits mots. Le serveur, lui, ne bloque que l'identique. */
+  var MOTS_VIDES = ['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'en', 'et', 'a', 'au', 'aux',
+                    'pour', 'avec', 'sans', 'sur', 'un', 'une'];
+  function motsCles(texte) {
+    return String(texte || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ').split(' ')
+      .filter(function (m) { return m && MOTS_VIDES.indexOf(m) < 0; })
+      .filter(function (m, i, t) { return t.indexOf(m) === i; });
+  }
+  /* Ressemblant : mêmes mots à 60 % (Jaccard), ou le plus court presque entièrement
+     contenu dans l'autre. « Verre noir 40x50 » et « Verre noir 60x90 » restent distincts. */
+  function seRessemblent(a, b) {
+    var A = motsCles(a), B = motsCles(b);
+    if (!A.length || !B.length) return false;
+    var communs = A.filter(function (m) { return B.indexOf(m) >= 0; }).length;
+    var union = A.length + B.length - communs;
+    var plusCourt = Math.min(A.length, B.length);
+    return communs / union >= 0.6 || (plusCourt >= 2 && communs / plusCourt >= 0.8);
+  }
+  function ressemblants(designation) {
+    return etat.articles.filter(function (a) { return seRessemblent(designation, a.designation); })
+      .sort(function (x, y) { return (y.famille === etat.familleNouveau) - (x.famille === etat.familleNouveau); });
+  }
+
+  var doublonAccepte = '';   // désignation pour laquelle « Créer quand même » a été choisi
+  function montrerRessemblants() {
+    var designation = $('n-designation').value.trim();
+    var liste = designation.length >= 3 ? ressemblants(designation) : [];
+    var boite = $('n-ressemblants');
+    boite.hidden = !liste.length;
+    if (!liste.length) { boite.innerHTML = ''; return liste; }
+    boite.innerHTML = '<p>Déjà en stock sous un nom proche — c\'est peut-être le même article :</p>' +
+      liste.slice(0, 5).map(function (a) {
+        return ligneArticle(a).replace('class="article"', 'class="article" data-utiliser="' + echapper(a.ref) + '"')
+          .replace('</button>', '<span class="utiliser">Utiliser →</span></button>');
+      }).join('') +
+      (doublonAccepte === designation ? '' :
+        '<button type="button" class="lien-btn" id="n-quand-meme">Non, c\'est un autre article : créer quand même</button>');
+    return liste;
+  }
+  $('n-designation').addEventListener('input', function () {
+    if (this.value.trim() !== doublonAccepte) doublonAccepte = '';
+    montrerRessemblants();
+  });
+  $('n-ressemblants').addEventListener('click', function (e) {
+    var u = e.target.closest('[data-utiliser]');
+    if (u) {
+      // L'article existe : on part sur sa réception, sans rien créer.
+      e.stopPropagation();
+      etat.choix.reception = u.getAttribute('data-utiliser');
+      ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite', 'n-prix'].forEach(function (id) { $(id).value = ''; });
+      montrerRessemblants();
+      dessinerChoix('reception');
+      afficher('reception');
+      message('Article existant choisi : saisis sa réception.', 'ok');
+      return;
+    }
+    if (e.target.id === 'n-quand-meme') {
+      doublonAccepte = $('n-designation').value.trim();
+      montrerRessemblants();
+      $('n-valider').click();
+    }
+  });
+
   $('n-valider').addEventListener('click', function () {
     if (!etat.familleNouveau) { message('Choisis la famille.', 'erreur'); return; }
     var designation = $('n-designation').value.trim();
     if (!designation) { message('Indique la désignation.', 'erreur'); return; }
+    if (doublonAccepte !== designation && montrerRessemblants().length) {
+      message('Un article ressemblant existe déjà : utilise-le, ou confirme que c\'en est un autre.', 'erreur');
+      $('n-ressemblants').scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
     var details = Array.prototype.map.call(document.querySelectorAll('#n-specifiques [data-spec]'), function (i) { return i.value.trim(); });
     var bouton = this;
     occupe(bouton, true);
@@ -679,6 +757,8 @@
         message('Article créé : ' + rep.ref + ' — ' + designation + '. Saisis maintenant sa réception.', 'ok');
         ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite', 'n-prix'].forEach(function (id) { $(id).value = ''; });
         delete $('n-unite').dataset.modifie;
+        doublonAccepte = '';
+        montrerRessemblants();
         etat.choix.reception = rep.ref;
         dessinerFamillesNouveau();
         ['reception', 'sortie', 'inventaire'].forEach(function (z) { if (z !== 'reception') dessinerChoix(z); });
