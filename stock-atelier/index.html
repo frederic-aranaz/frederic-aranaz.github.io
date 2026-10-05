@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Atelier — EKAYE</title>
+  <!-- Page de saisie du classeur « Stock Atelier ». Le classeur reste la base et le
+       tableau de bord ; cette page ne fait qu'écrire au journal Mouvements via la Web App
+       du script (POST, clé dans le corps). Sources : memory/projets/stock-atelier/notes/. -->
+  <meta name="theme-color" content="#141210">
+  <link rel="icon" href="../icone.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --ek: #86673C; --ek-clair: #e2a95a; --ambre: #c9882a;
+      --bg: #141210; --bg-card: #1e1b17; --bg-card2: #252118;
+      --text: #eeece8; --text-2: #d8c8a8; --text-3: #a08860;
+      --border: rgba(226,169,90,0.25);
+      --vert: #7fb069; --orange: #e0a05a; --rouge: #e0836f;
+      --font: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 80px;
+      -webkit-text-size-adjust: 100%;
+    }
+    a { color: var(--ek-clair); }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    header h1 { font-size: 19px; color: #e8d8b0; flex: 1; }
+    header h1 small { display: block; font-size: 12px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
+    .retour, .icone-btn {
+      min-height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 10px; background: var(--bg-card2); border: 0.5px solid var(--border);
+      color: var(--text-2); text-decoration: none; font-size: 13px; padding: 0 12px; cursor: pointer;
+      font-family: var(--font);
+    }
+
+    /* Onglets : des pastilles, pas un <select> — un geste, pas deux. */
+    nav.onglets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+    nav.onglets button {
+      min-height: 46px; border-radius: 10px; border: 0.5px solid var(--border);
+      background: var(--bg-card); color: var(--text-2); font: 600 12px var(--font); cursor: pointer;
+      padding: 4px 2px; line-height: 1.2;
+    }
+    nav.onglets button.actif { background: var(--ek); color: #fff; border-color: var(--ek); }
+    nav.onglets .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px;
+      background: var(--rouge); color: #1a1208; font-size: 11px; margin-left: 3px; }
+
+    .carte { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px;
+      padding: 14px; margin-bottom: 12px; }
+    h2 { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px; }
+    label { display: block; font-size: 12px; color: var(--text-3); margin: 10px 0 4px; }
+    input, select, textarea {
+      width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 10px;
+      border: 0.5px solid var(--border); background: var(--bg-card2); color: var(--text);
+      font: 15px var(--font);
+    }
+    input[type=file] { padding: 10px; font-size: 13px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--ambre); outline-offset: 0; }
+    .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ligne3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .aide { font-size: 12px; color: var(--text-3); line-height: 1.5; margin-top: 6px; }
+    .calcul { font-size: 13px; color: var(--ek-clair); margin-top: 8px; }
+
+    .btn {
+      width: 100%; min-height: 50px; margin-top: 14px; padding: 12px 16px; background: var(--ek);
+      color: #fff; border: none; border-radius: 10px; cursor: pointer; font: 700 15px var(--font);
+    }
+    .btn.sec { background: var(--bg-card2); color: var(--text-2); border: 0.5px solid var(--border); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .lien-btn { background: none; border: none; color: var(--ek-clair); font: 13px var(--font);
+      cursor: pointer; padding: 8px 0; text-decoration: underline; }
+
+    /* Choix d'article : recherche + résultats, puis l'article retenu en carte. */
+    .resultats { margin-top: 6px; max-height: 320px; overflow-y: auto; border-radius: 10px; }
+    .article {
+      display: flex; gap: 10px; align-items: center; width: 100%; text-align: left;
+      padding: 10px 12px; min-height: 52px; background: var(--bg-card2); color: var(--text);
+      border: 0.5px solid transparent; border-radius: 10px; margin-bottom: 4px; cursor: pointer;
+      font-family: var(--font);
+    }
+    .article:hover { border-color: var(--border); }
+    .article .info { flex: 1; min-width: 0; }
+    .article .nom { display: block; font-size: 14px; font-weight: 600; }
+    .article .meta { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .article .stock { font-size: 13px; color: var(--text-2); text-align: right; white-space: nowrap; }
+    .article .stock.bas { color: var(--rouge); font-weight: 700; }
+    .choisi { display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 10px;
+      background: rgba(201,136,42,0.1); border: 0.5px solid rgba(201,136,42,0.45); }
+    .choisi .info { flex: 1; }
+    .choisi .nom { font-weight: 700; }
+    .choisi .meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pastilles button { min-height: 40px; padding: 6px 12px; border-radius: 20px;
+      border: 0.5px solid var(--border); background: var(--bg-card2); color: var(--text-2);
+      font: 13px var(--font); cursor: pointer; }
+    .pastilles button.actif { background: var(--ek); color: #fff; border-color: var(--ek); }
+
+    .vide { color: var(--text-3); font-size: 13px; padding: 18px 0; text-align: center; }
+    .commande { display: flex; gap: 10px; align-items: center; padding: 10px 0;
+      border-bottom: 0.5px solid var(--border); }
+    .commande:last-child { border-bottom: none; }
+    .commande .info { flex: 1; }
+    .commande .nom { font-weight: 600; font-size: 14px; }
+    .commande .meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    #message {
+      position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 728px; margin: 0 auto;
+      padding: 14px 16px; border-radius: 12px; font-size: 14px; line-height: 1.4;
+      background: var(--bg-card2); border: 0.5px solid var(--border); color: var(--text);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: none; z-index: 10;
+    }
+    #message.ok { border-color: rgba(127,176,105,0.6); }
+    #message.erreur { border-color: rgba(224,131,111,0.7); color: #f2c4b8; }
+    #message a { color: var(--ek-clair); }
+    .chargement { text-align: center; color: var(--text-3); padding: 40px 0; font-size: 14px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 420px) {
+      nav.onglets { grid-template-columns: repeat(3, 1fr); }
+      .ligne3 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="retour" href="/" aria-label="Retour au portail">←</a>
+    <h1>Stock Atelier <small id="etat">Chargement…</small></h1>
+    <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
+  </header>
+
+  <nav class="onglets" id="onglets">
+    <button data-onglet="reception" class="actif">Réception</button>
+    <button data-onglet="sortie">Sortie</button>
+    <button data-onglet="inventaire">Inventaire</button>
+    <button data-onglet="commander">À commander<span class="badge" id="badge" hidden></span></button>
+    <button data-onglet="nouveau">Nouvel article</button>
+  </nav>
+
+  <div id="chargement" class="chargement">Chargement du stock…</div>
+
+  <!-- ── Réception ─────────────────────────────────────────────────────────── -->
+  <section id="reception" hidden>
+    <div class="carte">
+      <h2>Article reçu</h2>
+      <div data-choix="reception"></div>
+      <button class="lien-btn" data-aller="nouveau">L'article n'existe pas encore ? Le créer</button>
+    </div>
+    <div class="carte">
+      <h2>Livraison</h2>
+      <div data-quantite="reception"></div>
+      <div class="ligne">
+        <div><label for="r-date">Date de réception</label><input type="date" id="r-date"></div>
+        <div><label for="r-fournisseur">Fournisseur</label><input id="r-fournisseur" list="liste-fournisseurs" autocomplete="off"></div>
+      </div>
+      <div class="ligne">
+        <div><label for="r-numero">N° de facture</label><input id="r-numero" autocomplete="off"></div>
+        <div><label for="r-motif">Note (facultatif)</label><input id="r-motif" autocomplete="off"></div>
+      </div>
+      <label for="r-facture">Facture (PDF ou photo)</label>
+      <input type="file" id="r-facture" accept="application/pdf,image/*">
+      <p class="aide">Rangée dans Drive (dossier « Stock Atelier — Factures fournisseurs ») et liée à la ligne du journal.</p>
+      <button class="btn" id="r-valider">Enregistrer la réception</button>
+    </div>
+  </section>
+
+  <!-- ── Sortie ────────────────────────────────────────────────────────────── -->
+  <section id="sortie" hidden>
+    <div class="carte">
+      <h2>Article utilisé</h2>
+      <div data-choix="sortie"></div>
+    </div>
+    <div class="carte">
+      <h2>Sortie</h2>
+      <div data-quantite="sortie"></div>
+      <label for="s-motif">Pour quoi ? (création, casse…)</label>
+      <input id="s-motif" autocomplete="off">
+      <button class="btn" id="s-valider">Enregistrer la sortie</button>
+    </div>
+  </section>
+
+  <!-- ── Inventaire ────────────────────────────────────────────────────────── -->
+  <section id="inventaire" hidden>
+    <div class="carte">
+      <h2>Article compté</h2>
+      <div data-choix="inventaire"></div>
+    </div>
+    <div class="carte">
+      <h2>Compte</h2>
+      <label for="i-compte" id="i-libelle">Quantité réellement en stock</label>
+      <input type="number" id="i-compte" min="0" step="any" inputmode="decimal">
+      <p class="aide" id="i-aide">L'écart avec le stock calculé est enregistré au journal comme ajustement.</p>
+      <button class="btn" id="i-valider">Enregistrer l'inventaire</button>
+    </div>
+  </section>
+
+  <!-- ── À commander ───────────────────────────────────────────────────────── -->
+  <section id="commander" hidden>
+    <div class="carte">
+      <h2>Sous le seuil mini</h2>
+      <div id="liste-commander"></div>
+      <p class="aide">Le seuil se règle dans le classeur, colonne « Seuil mini » de chaque famille.</p>
+    </div>
+  </section>
+
+  <!-- ── Nouvel article ────────────────────────────────────────────────────── -->
+  <section id="nouveau" hidden>
+    <div class="carte">
+      <h2>Famille</h2>
+      <div class="pastilles" id="n-familles"></div>
+      <label for="n-designation">Désignation</label>
+      <input id="n-designation" autocomplete="off" placeholder="ex. Ampoule E14 calotte cuivre">
+      <div class="ligne">
+        <div><label for="n-marque">Marque</label><input id="n-marque" autocomplete="off"></div>
+        <div><label for="n-fournisseur">Fournisseur</label><input id="n-fournisseur" list="liste-fournisseurs" autocomplete="off"></div>
+      </div>
+      <div id="n-specifiques"></div>
+      <label for="n-unite">Unité de stock</label>
+      <input id="n-unite" autocomplete="off">
+      <button class="btn" id="n-valider">Créer l'article</button>
+      <p class="aide">Une fois créé, il est proposé directement à la réception.</p>
+    </div>
+  </section>
+
+  <datalist id="liste-fournisseurs"></datalist>
+  <div id="message" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Adresse de l'API et clé d'accès ─────────────────────────────────────
+     La clé est saisie une fois par appareil et ne circule que dans le corps des
+     requêtes, jamais dans l'URL. */
+  var URL_API_DEFAUT = 'https://script.google.com/macros/s/AKfycbw0CTFjHUZOWnWNib9-bHz7LRJ3FYI_RATXtzYk_ZZu5wuHNg9hWAbGraKVAgoH_2_xmA/exec';
+  var CLE_STOCKAGE = 'ekaye_stock_cle';
+  var URL_STOCKAGE = 'ekaye_stock_url_api';
+  var IMAGE_MAX = 1800;          // px, côté le plus long d'une photo de facture
+  var FICHIER_MAX = 15 * 1024 * 1024;
+
+  function lire(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function ecrire(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function effacer(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function urlApi() { return lire(URL_STOCKAGE) || URL_API_DEFAUT; }
+
+  function cleAcces(redemander) {
+    var cle = redemander ? null : lire(CLE_STOCKAGE);
+    if (!cle) {
+      cle = (window.prompt("Clé d'accès Stock Atelier :") || '').trim();
+      if (!cle) return null;
+      ecrire(CLE_STOCKAGE, cle);
+    }
+    return cle;
+  }
+
+  /* Tous les appels passent ici. text/plain évite la requête préalable CORS, qu'Apps
+     Script ne sait pas servir. Réponse lue en texte d'abord : une page HTML de Google
+     (ré-autorisation) ne doit pas finir en « Unexpected token '<' ». */
+  function appel(action, data, dejaRedemande) {
+    var cle = cleAcces(false);
+    if (!cle) return Promise.reject(new Error("Clé d'accès requise."));
+    return fetch(urlApi(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, cle: cle, data: data || {} })
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        try { return JSON.parse(t); }
+        catch (e) { throw new Error('Réponse illisible du serveur (HTTP ' + r.status + ').'); }
+      });
+    }).then(function (rep) {
+      if (rep && rep.authRefusee) {
+        effacer(CLE_STOCKAGE);
+        if (!dejaRedemande && cleAcces(true)) return appel(action, data, true);
+        throw new Error("Clé d'accès refusée.");
+      }
+      if (rep && rep.erreur) throw new Error(rep.erreur);
+      return rep;
+    });
+  }
+
+  /* ── État ──────────────────────────────────────────────────────────────── */
+  var etat = { articles: [], familles: [], fournisseurs: [], choix: {}, familleNouveau: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function echapper(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function nombre(n) {
+    return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  }
+  function famille(nom) {
+    for (var i = 0; i < etat.familles.length; i++) if (etat.familles[i].nom === nom) return etat.familles[i];
+    return null;
+  }
+  function article(ref) {
+    for (var i = 0; i < etat.articles.length; i++) if (etat.articles[i].ref === ref) return etat.articles[i];
+    return null;
+  }
+  function estBas(a) { return a.statut === 'À commander'; }
+  function aujourdhui() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  var minuterie = null;
+  function message(texte, type, html) {
+    var m = $('message');
+    m.className = type || '';
+    if (html) m.innerHTML = texte; else m.textContent = texte;
+    m.style.display = 'block';
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function () { m.style.display = 'none'; }, type === 'erreur' ? 9000 : 6000);
+  }
+
+  /* ── Chargement ────────────────────────────────────────────────────────── */
+  function charger() {
+    $('etat').textContent = 'Chargement…';
+    return appel('articles').then(function (rep) {
+      etat.articles = rep.articles || [];
+      etat.familles = rep.familles || [];
+      etat.fournisseurs = rep.fournisseurs || [];
+      $('chargement').hidden = true;
+      $('etat').textContent = etat.articles.length + ' articles · ' + etat.familles.length + ' familles';
+      remplirFournisseurs();
+      ['reception', 'sortie', 'inventaire'].forEach(function (z) { dessinerChoix(z); });
+      dessinerCommander();
+      dessinerFamillesNouveau();
+      afficher(ongletCourant);
+    }).catch(function (err) {
+      $('chargement').textContent = 'Impossible de charger le stock : ' + err.message;
+      $('etat').textContent = 'Hors service';
+    });
+  }
+
+  function remplirFournisseurs() {
+    $('liste-fournisseurs').innerHTML = etat.fournisseurs.map(function (f) {
+      return '<option value="' + echapper(f) + '">';
+    }).join('');
+  }
+
+  /* ── Onglets ───────────────────────────────────────────────────────────── */
+  var ongletCourant = 'reception';
+  function afficher(nom) {
+    ongletCourant = nom;
+    ['reception', 'sortie', 'inventaire', 'commander', 'nouveau'].forEach(function (n) {
+      $(n).hidden = (n !== nom) || !etat.familles.length;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#onglets button'), function (b) {
+      b.classList.toggle('actif', b.getAttribute('data-onglet') === nom);
+    });
+  }
+  $('onglets').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-onglet]');
+    if (b) afficher(b.getAttribute('data-onglet'));
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-aller]');
+    if (b) afficher(b.getAttribute('data-aller'));
+  });
+
+  /* ── Choix d'un article (même composant pour les trois saisies) ────────── */
+  function ligneArticle(a) {
+    return '<button type="button" class="article" data-ref="' + echapper(a.ref) + '">' +
+      '<span class="info"><span class="nom">' + echapper(a.designation) + '</span>' +
+      '<span class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) + '</span></span>' +
+      '<span class="stock' + (estBas(a) ? ' bas' : '') + '">' + nombre(a.stock) + ' ' + echapper(a.unite) + '</span></button>';
+  }
+
+  function dessinerChoix(zone) {
+    var boite = document.querySelector('[data-choix="' + zone + '"]');
+    var ref = etat.choix[zone];
+    var a = ref && article(ref);
+    if (a) {
+      boite.innerHTML = '<div class="choisi"><div class="info"><div class="nom">' + echapper(a.designation) + '</div>' +
+        '<div class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) +
+        ' — en stock : <strong>' + nombre(a.stock) + ' ' + echapper(a.unite) + '</strong></div></div>' +
+        '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>';
+    } else {
+      boite.innerHTML = '<input type="search" placeholder="Chercher : nom, réf, marque, famille…" data-recherche="' + zone + '" autocomplete="off">' +
+        '<div class="resultats" data-resultats="' + zone + '"></div>';
+      filtrer(zone, '');
+    }
+    dessinerQuantite(zone);
+    if (zone === 'reception') {
+      if (a && a.fournisseur && !$('r-fournisseur').value) $('r-fournisseur').value = a.fournisseur;
+    }
+    if (zone === 'inventaire') {
+      var surface = a && famille(a.famille) && famille(a.famille).parSurface;
+      $('i-libelle').textContent = surface ? 'Surface réellement en stock (cm²)' : 'Quantité réellement en stock' + (a ? ' (' + a.unite + ')' : '');
+      $('i-compte').value = '';
+    }
+  }
+
+  function filtrer(zone, texte) {
+    var mots = texte.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/\s+/).filter(Boolean);
+    var trouves = etat.articles.filter(function (a) {
+      var tout = [a.ref, a.designation, a.famille, a.marque, a.details, a.fournisseur].join(' ')
+        .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      return mots.every(function (m) { return tout.indexOf(m) >= 0; });
+    }).slice(0, 40);
+    var boite = document.querySelector('[data-resultats="' + zone + '"]');
+    if (boite) boite.innerHTML = trouves.length ? trouves.map(ligneArticle).join('') : '<div class="vide">Aucun article.</div>';
+  }
+
+  document.addEventListener('input', function (e) {
+    var z = e.target.getAttribute('data-recherche');
+    if (z) filtrer(z, e.target.value);
+    if (e.target.hasAttribute('data-dim')) majCalcul(e.target.getAttribute('data-dim'));
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.article[data-ref]');
+    if (b) {
+      var zone = b.closest('[data-choix]').getAttribute('data-choix');
+      etat.choix[zone] = b.getAttribute('data-ref');
+      dessinerChoix(zone);
+      return;
+    }
+    var c = e.target.closest('[data-changer]');
+    if (c) {
+      var z = c.getAttribute('data-changer');
+      delete etat.choix[z];
+      dessinerChoix(z);
+      var champ = document.querySelector('[data-recherche="' + z + '"]');
+      if (champ) champ.focus();
+    }
+  });
+
+  /* Quantité : un nombre, ou pour le verre les dimensions des morceaux (cm²). */
+  function dessinerQuantite(zone) {
+    var boite = document.querySelector('[data-quantite="' + zone + '"]');
+    if (!boite) return;
+    var a = etat.choix[zone] && article(etat.choix[zone]);
+    var fam = a && famille(a.famille);
+    if (fam && fam.parSurface) {
+      boite.innerHTML = '<div class="ligne3">' +
+        '<div><label>Nombre de morceaux</label><input type="number" min="1" step="1" value="1" inputmode="numeric" data-dim="' + zone + '" data-champ="nombre"></div>' +
+        '<div><label>Longueur (cm)</label><input type="number" min="0" step="any" inputmode="decimal" data-dim="' + zone + '" data-champ="longueur"></div>' +
+        '<div><label>Largeur (cm)</label><input type="number" min="0" step="any" inputmode="decimal" data-dim="' + zone + '" data-champ="largeur"></div>' +
+        '</div><div class="calcul" data-calcul="' + zone + '"></div>';
+    } else {
+      boite.innerHTML = '<label>Quantité' + (a ? ' (' + echapper(a.unite) + ')' : '') + '</label>' +
+        '<input type="number" min="0" step="any" inputmode="decimal" data-champ="quantite" data-zone="' + zone + '">';
+    }
+  }
+
+  function champ(zone, nom) {
+    return document.querySelector('[data-quantite="' + zone + '"] [data-champ="' + nom + '"]');
+  }
+
+  function majCalcul(zone) {
+    var n = Number(champ(zone, 'nombre').value) || 0;
+    var L = Number(champ(zone, 'longueur').value) || 0;
+    var l = Number(champ(zone, 'largeur').value) || 0;
+    var cible = document.querySelector('[data-calcul="' + zone + '"]');
+    cible.textContent = (n && L && l) ? n + ' × ' + nombre(L) + ' × ' + nombre(l) + ' = ' + nombre(n * L * l) + ' cm²' : '';
+  }
+
+  /* Lit la quantité saisie ; null + message si elle manque. */
+  function quantiteSaisie(zone) {
+    var a = article(etat.choix[zone]);
+    var fam = famille(a.famille);
+    if (fam && fam.parSurface) {
+      var d = { nombre: Number(champ(zone, 'nombre').value) || 1,
+                longueur: Number(champ(zone, 'longueur').value), largeur: Number(champ(zone, 'largeur').value) };
+      if (!(d.longueur > 0) || !(d.largeur > 0)) { message('Indique la longueur et la largeur du morceau.', 'erreur'); return null; }
+      return d;
+    }
+    var q = Number(champ(zone, 'quantite').value);
+    if (!(q > 0)) { message('Indique une quantité.', 'erreur'); return null; }
+    return { quantite: q };
+  }
+
+  function exigerArticle(zone) {
+    if (etat.choix[zone] && article(etat.choix[zone])) return article(etat.choix[zone]);
+    message("Choisis d'abord l'article.", 'erreur');
+    return null;
+  }
+
+  function apresMouvement(zone, rep) {
+    var a = article(rep.ref);
+    if (a) {
+      a.stock = rep.stock;
+      if (a.seuil !== null && a.seuil !== undefined) a.statut = a.stock <= a.seuil ? 'À commander' : 'OK';
+    }
+    delete etat.choix[zone];
+    dessinerChoix(zone);
+    dessinerCommander();
+  }
+
+  function occupe(bouton, oui, texte) {
+    bouton.disabled = oui;
+    if (oui) { bouton.dataset.texte = bouton.textContent; bouton.textContent = texte || 'Envoi…'; }
+    else if (bouton.dataset.texte) bouton.textContent = bouton.dataset.texte;
+  }
+
+  /* ── Facture : PDF tel quel, photo réduite avant l'envoi ───────────────── */
+  function lireFacture(fichier) {
+    if (!fichier) return Promise.resolve(null);
+    if (fichier.size > FICHIER_MAX) return Promise.reject(new Error('Fichier trop lourd (15 Mo maximum).'));
+    if (/^image\//.test(fichier.type) && fichier.type !== 'image/gif') return reduireImage(fichier);
+    return new Promise(function (ok, ko) {
+      var r = new FileReader();
+      r.onload = function () { ok({ nom: fichier.name, mime: fichier.type || 'application/pdf', base64: String(r.result).split(',')[1] }); };
+      r.onerror = function () { ko(new Error('Lecture du fichier impossible.')); };
+      r.readAsDataURL(fichier);
+    });
+  }
+
+  function reduireImage(fichier) {
+    return new Promise(function (ok, ko) {
+      var img = new Image();
+      var url = URL.createObjectURL(fichier);
+      img.onload = function () {
+        var k = Math.min(1, IMAGE_MAX / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var nom = fichier.name.replace(/\.[^.]+$/, '') + '.jpg';
+        ok({ nom: nom, mime: 'image/jpeg', base64: c.toDataURL('image/jpeg', 0.82).split(',')[1] });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); ko(new Error('Photo illisible (format HEIC ? prends-la en JPG).')); };
+      img.src = url;
+    });
+  }
+
+  /* ── Réception ─────────────────────────────────────────────────────────── */
+  $('r-valider').addEventListener('click', function () {
+    var a = exigerArticle('reception'); if (!a) return;
+    var q = quantiteSaisie('reception'); if (!q) return;
+    var bouton = this;
+    var fichier = $('r-facture').files[0];
+    occupe(bouton, true, fichier ? 'Envoi de la facture…' : 'Envoi…');
+    lireFacture(fichier).then(function (facture) {
+      var data = Object.assign({ ref: a.ref, type: 'Entrée', date: $('r-date').value,
+        fournisseur: $('r-fournisseur').value.trim(), numeroFacture: $('r-numero').value.trim(),
+        motif: $('r-motif').value.trim(), facture: facture }, q);
+      return appel('mouvement', data);
+    }).then(function (rep) {
+      var lien = rep.facture ? ' · <a href="' + echapper(rep.facture.url) + '" target="_blank" rel="noopener">facture rangée</a>' : '';
+      message('Réception enregistrée : +' + nombre(rep.quantite) + ' ' + echapper(a.unite) + ' de ' + echapper(a.designation) +
+        ' — stock ' + nombre(rep.stock) + lien, 'ok', true);
+      var f = $('r-fournisseur').value.trim();
+      if (f && etat.fournisseurs.indexOf(f) < 0) { etat.fournisseurs.push(f); remplirFournisseurs(); }
+      if (f && !a.fournisseur) a.fournisseur = f;
+      ['r-numero', 'r-motif', 'r-fournisseur'].forEach(function (id) { $(id).value = ''; });
+      $('r-facture').value = '';
+      apresMouvement('reception', rep);
+    }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+
+  /* ── Sortie ────────────────────────────────────────────────────────────── */
+  $('s-valider').addEventListener('click', function () {
+    var a = exigerArticle('sortie'); if (!a) return;
+    var q = quantiteSaisie('sortie'); if (!q) return;
+    var bouton = this;
+    occupe(bouton, true);
+    appel('mouvement', Object.assign({ ref: a.ref, type: 'Sortie', motif: $('s-motif').value.trim() }, q))
+      .then(function (rep) {
+        message('Sortie enregistrée : −' + nombre(rep.quantite) + ' ' + a.unite + ' de ' + a.designation + ' — stock ' + nombre(rep.stock), 'ok');
+        $('s-motif').value = '';
+        apresMouvement('sortie', rep);
+        dessinerCommander();
+      }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+
+  /* ── Inventaire ────────────────────────────────────────────────────────── */
+  $('i-valider').addEventListener('click', function () {
+    var a = exigerArticle('inventaire'); if (!a) return;
+    var v = $('i-compte').value;
+    if (v === '' || Number(v) < 0) { message('Indique la quantité comptée.', 'erreur'); return; }
+    var bouton = this;
+    occupe(bouton, true);
+    appel('inventaire', { ref: a.ref, compte: Number(v) }).then(function (rep) {
+      message(rep.ecart ? 'Inventaire enregistré : écart de ' + (rep.ecart > 0 ? '+' : '') + nombre(rep.ecart) + ' ' + a.unite + ' — stock ' + nombre(rep.stock)
+                        : 'Stock confirmé : ' + nombre(rep.stock) + ' ' + a.unite + ', aucun écart.', 'ok');
+      apresMouvement('inventaire', rep);
+    }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+
+  /* ── À commander ───────────────────────────────────────────────────────── */
+  function dessinerCommander() {
+    var liste = etat.articles.filter(estBas);
+    var badge = $('badge');
+    badge.hidden = !liste.length;
+    badge.textContent = liste.length;
+    $('liste-commander').innerHTML = liste.length ? liste.map(function (a) {
+      return '<div class="commande"><div class="info"><div class="nom">' + echapper(a.designation) + '</div>' +
+        '<div class="meta">' + echapper(a.ref) + ' · stock ' + nombre(a.stock) + ' / seuil ' + nombre(a.seuil) + ' ' + echapper(a.unite) +
+        (a.fournisseur ? ' · ' + echapper(a.fournisseur) : '') + '</div></div>' +
+        (a.lien ? '<a class="icone-btn" href="' + echapper(a.lien) + '" target="_blank" rel="noopener">Commander</a>' : '') + '</div>';
+    }).join('') : '<div class="vide">Rien à commander : tout est au-dessus du seuil.</div>';
+  }
+
+  /* ── Nouvel article ────────────────────────────────────────────────────── */
+  function dessinerFamillesNouveau() {
+    $('n-familles').innerHTML = etat.familles.map(function (f) {
+      return '<button type="button" data-famille="' + echapper(f.nom) + '"' +
+        (etat.familleNouveau === f.nom ? ' class="actif"' : '') + '>' + echapper(f.nom) + '</button>';
+    }).join('');
+    var fam = famille(etat.familleNouveau);
+    $('n-specifiques').innerHTML = fam ? '<div class="ligne">' + fam.specifiques.map(function (s, i) {
+      return '<div><label>' + echapper(s) + '</label><input data-spec="' + i + '" autocomplete="off"></div>';
+    }).join('') + '</div>' : '';
+    if (fam && !$('n-unite').dataset.modifie) $('n-unite').value = fam.unite;
+  }
+  $('n-familles').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-famille]');
+    if (!b) return;
+    etat.familleNouveau = b.getAttribute('data-famille');
+    dessinerFamillesNouveau();
+  });
+  $('n-unite').addEventListener('input', function () { this.dataset.modifie = '1'; });
+
+  $('n-valider').addEventListener('click', function () {
+    if (!etat.familleNouveau) { message('Choisis la famille.', 'erreur'); return; }
+    var designation = $('n-designation').value.trim();
+    if (!designation) { message('Indique la désignation.', 'erreur'); return; }
+    var details = Array.prototype.map.call(document.querySelectorAll('#n-specifiques [data-spec]'), function (i) { return i.value.trim(); });
+    var bouton = this;
+    occupe(bouton, true);
+    appel('article', { famille: etat.familleNouveau, designation: designation, marque: $('n-marque').value.trim(),
+      fournisseur: $('n-fournisseur').value.trim(), unite: $('n-unite').value.trim(), details: details })
+      .then(function (rep) {
+        etat.articles = rep.articles || etat.articles;
+        message('Article créé : ' + rep.ref + ' — ' + designation + '. Saisis maintenant sa réception.', 'ok');
+        ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite'].forEach(function (id) { $(id).value = ''; });
+        delete $('n-unite').dataset.modifie;
+        etat.choix.reception = rep.ref;
+        dessinerFamillesNouveau();
+        ['reception', 'sortie', 'inventaire'].forEach(function (z) { if (z !== 'reception') dessinerChoix(z); });
+        dessinerChoix('reception');
+        afficher('reception');
+      }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+
+  /* ── Démarrage ─────────────────────────────────────────────────────────── */
+  $('r-date').value = aujourdhui();
+  $('actualiser').addEventListener('click', charger);
+  charger();
+})();
+</script>
+</body>
+</html>

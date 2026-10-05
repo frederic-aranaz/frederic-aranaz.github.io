@@ -17,7 +17,9 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v8';   // v8 : tuile Pointage vers la page de scan de
+var VERSION = 'v9';   // v9 : tuile Stock Atelier en fin de « À l'atelier »
+                      //      (05/10/2026)
+                      // v8 : tuile Pointage vers la page de scan de
                       //      ekaye-vente-scan (25/09/2026)
                       // v7 : tuile Gabarits vitrail en fin de « À l'atelier »
                       //      (23/09/2026)
