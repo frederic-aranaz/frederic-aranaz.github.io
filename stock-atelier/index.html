@@ -61,6 +61,8 @@
     .ligne3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .aide { font-size: 12px; color: var(--text-3); line-height: 1.5; margin-top: 6px; }
     .calcul { font-size: 13px; color: var(--ek-clair); margin-top: 8px; }
+    .morceau + .morceau { margin-top: 10px; border-top: 0.5px solid var(--border); padding-top: 10px; }
+    .morceau .lien-btn { padding: 4px 0 0; }
 
     .btn {
       width: 100%; min-height: 50px; margin-top: 14px; padding: 12px 16px; background: var(--ek);
@@ -197,8 +199,16 @@
     </div>
     <div class="carte">
       <h2>Compte</h2>
-      <label for="i-compte" id="i-libelle">Quantité réellement en stock</label>
-      <input type="number" id="i-compte" min="0" step="any" inputmode="decimal">
+      <div id="i-simple">
+        <label for="i-compte" id="i-libelle">Quantité réellement en stock</label>
+        <input type="number" id="i-compte" min="0" step="any" inputmode="decimal">
+      </div>
+      <div id="i-morceaux" hidden>
+        <label>Morceaux comptés</label>
+        <div data-morceaux="inventaire"></div>
+        <button type="button" class="lien-btn" id="i-ajouter">+ Ajouter une taille</button>
+        <div class="calcul" data-calcul="inventaire"></div>
+      </div>
       <p class="aide" id="i-aide">L'écart avec le stock calculé est enregistré au journal comme ajustement.</p>
       <button class="btn" id="i-valider">Enregistrer l'inventaire</button>
     </div>
@@ -454,9 +464,15 @@
       $('r-prix').value = (a && a.prix && !verre) ? a.prix : '';
     }
     if (zone === 'inventaire') {
-      var surface = a && famille(a.famille) && famille(a.famille).parSurface;
-      $('i-libelle').textContent = surface ? 'Surface réellement en stock (cm²)' : 'Quantité réellement en stock' + (a ? ' (' + a.unite + ')' : '');
+      var surface = !!(a && famille(a.famille) && famille(a.famille).parSurface);
+      $('i-simple').hidden = surface;
+      $('i-morceaux').hidden = !surface;
+      $('i-libelle').textContent = 'Quantité réellement en stock' + (a ? ' (' + a.unite + ')' : '');
       $('i-compte').value = '';
+      $('i-aide').textContent = surface
+        ? "Une ligne par taille de morceau : le total en cm² devient le stock. L'écart est enregistré au journal comme ajustement."
+        : "L'écart avec le stock calculé est enregistré au journal comme ajustement.";
+      dessinerMorceaux();
     }
   }
 
@@ -475,6 +491,7 @@
     var z = e.target.getAttribute('data-recherche');
     if (z) filtrer(z, e.target.value);
     if (e.target.hasAttribute('data-dim')) majCalcul(e.target.getAttribute('data-dim'));
+    if (e.target.hasAttribute('data-morceau')) majMorceaux();
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('.article[data-ref]');
@@ -484,6 +501,8 @@
       dessinerChoix(zone);
       return;
     }
+    var r = e.target.closest('[data-retirer]');
+    if (r) { r.closest('.morceau').remove(); majMorceaux(); return; }
     var c = e.target.closest('[data-changer]');
     if (c) {
       var z = c.getAttribute('data-changer');
@@ -515,6 +534,60 @@
   function champ(zone, nom) {
     return document.querySelector('[data-quantite="' + zone + '"] [data-champ="' + nom + '"]');
   }
+
+  /* ── Inventaire du verre : une ligne par taille de morceau, additionnées ──
+     Les chutes d'un même verre n'ont jamais la même taille : on compte
+     « 1 × 27 × 27 + 3 × 12 × 8 », la page fait la somme en cm². */
+  function boiteMorceaux() { return document.querySelector('[data-morceaux="inventaire"]'); }
+
+  function ligneMorceau() {
+    return '<div class="morceau"><div class="ligne3">' +
+      '<div><label>Nombre</label><input type="number" min="1" step="1" value="1" inputmode="numeric" data-morceau="nombre"></div>' +
+      '<div><label>Longueur (cm)</label><input type="number" min="0" step="any" inputmode="decimal" data-morceau="longueur"></div>' +
+      '<div><label>Largeur (cm)</label><input type="number" min="0" step="any" inputmode="decimal" data-morceau="largeur"></div>' +
+      '</div><button type="button" class="lien-btn" data-retirer hidden>Retirer cette taille</button></div>';
+  }
+
+  function dessinerMorceaux() {
+    boiteMorceaux().innerHTML = ligneMorceau();
+    majMorceaux();
+  }
+
+  function morceauxSaisis() {
+    var out = [];
+    Array.prototype.forEach.call(boiteMorceaux().querySelectorAll('.morceau'), function (ligne) {
+      var val = function (nom) { return Number(ligne.querySelector('[data-morceau="' + nom + '"]').value) || 0; };
+      var nb = val('nombre') || 1, L = val('longueur'), l = val('largeur');
+      if (nb > 0 && L > 0 && l > 0) out.push({ nombre: nb, longueur: L, largeur: l });
+    });
+    return out;
+  }
+
+  function texteMorceaux(m) {
+    return m.map(function (p) { return p.nombre + ' × ' + nombre(p.longueur) + ' × ' + nombre(p.largeur); }).join(' + ');
+  }
+
+  function totalMorceaux(m) {
+    return Math.round(m.reduce(function (t, p) { return t + p.nombre * p.longueur * p.largeur; }, 0) * 100) / 100;
+  }
+
+  function majMorceaux() {
+    var lignes = boiteMorceaux().querySelectorAll('.morceau');
+    Array.prototype.forEach.call(lignes, function (ligne) {
+      ligne.querySelector('[data-retirer]').hidden = lignes.length < 2;
+    });
+    var m = morceauxSaisis();
+    document.querySelector('[data-calcul="inventaire"]').textContent =
+      m.length ? texteMorceaux(m) + ' = ' + nombre(totalMorceaux(m)) + ' cm²' : '';
+  }
+
+  $('i-ajouter').addEventListener('click', function () {
+    boiteMorceaux().insertAdjacentHTML('beforeend', ligneMorceau());
+    majMorceaux();
+    var ajoutee = boiteMorceaux().lastElementChild;
+    ajoutee.querySelector('[data-morceau="longueur"]').focus();
+    ajoutee.scrollIntoView({ block: 'nearest' });
+  });
 
   function majCalcul(zone) {
     var n = Number(champ(zone, 'nombre').value) || 0;
@@ -640,11 +713,23 @@
   /* ── Inventaire ────────────────────────────────────────────────────────── */
   $('i-valider').addEventListener('click', function () {
     var a = exigerArticle('inventaire'); if (!a) return;
-    var v = $('i-compte').value;
-    if (v === '' || Number(v) < 0) { message('Indique la quantité comptée.', 'erreur'); return; }
+    var fam = famille(a.famille);
+    var compte, motif = '';
+    if (fam && fam.parSurface) {
+      var m = morceauxSaisis();
+      compte = totalMorceaux(m);
+      motif = 'Inventaire — ' + (m.length ? texteMorceaux(m) : 'plus aucun morceau');
+      // Formulaire vide = 0 cm² : on ne vide pas un stock sur un appui malheureux.
+      if (!m.length && !confirm('Aucun morceau saisi : enregistrer un stock de 0 cm² pour '
+            + a.designation + ' ?')) return;
+    } else {
+      var v = $('i-compte').value;
+      if (v === '' || Number(v) < 0) { message('Indique la quantité comptée.', 'erreur'); return; }
+      compte = Number(v);
+    }
     var bouton = this;
     occupe(bouton, true);
-    appel('inventaire', { ref: a.ref, compte: Number(v) }).then(function (rep) {
+    appel('inventaire', { ref: a.ref, compte: compte, motif: motif }).then(function (rep) {
       message(rep.ecart ? 'Inventaire enregistré : écart de ' + (rep.ecart > 0 ? '+' : '') + quantite(rep.ecart, a.unite) + ' — stock ' + quantite(rep.stock, a.unite)
                         : 'Stock confirmé : ' + quantite(rep.stock, a.unite) + ', aucun écart.', 'ok');
       apresMouvement('inventaire', rep);
