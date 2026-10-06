@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trajets IK — EKAYE</title>
+  <!-- Page de saisie du classeur « IK EKAYE ». Le classeur reste la base et le bilan ;
+       cette page écrit au journal Trajets via la Web App du script (POST, clé dans le corps).
+       Sources : memory/projets/ik-ekaye/notes/. -->
+  <meta name="theme-color" content="#141210">
+  <link rel="icon" href="../icone.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --ek: #86673C; --ek-clair: #e2a95a; --ambre: #c9882a;
+      --bg: #141210; --bg-card: #1e1b17; --bg-card2: #252118;
+      --text: #eeece8; --text-2: #d8c8a8; --text-3: #a08860;
+      --border: rgba(226,169,90,0.25);
+      --vert: #7fb069; --orange: #e0a05a; --rouge: #e0836f;
+      --font: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      padding: 16px; max-width: 760px; margin: 0 auto; padding-bottom: 80px;
+      -webkit-text-size-adjust: 100%;
+    }
+    a { color: var(--ek-clair); }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    header h1 { font-size: 19px; color: #e8d8b0; flex: 1; }
+    header h1 .version { font-size: 11px; font-weight: 400; color: var(--text-3); margin-left: 4px; letter-spacing: .02em; }
+    header h1 small { display: block; font-size: 12px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
+    .retour, .icone-btn {
+      min-height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 10px; background: var(--bg-card2); border: 0.5px solid var(--border);
+      color: var(--text-2); text-decoration: none; font-size: 13px; padding: 0 12px; cursor: pointer;
+      font-family: var(--font);
+    }
+
+    nav.onglets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; }
+    nav.onglets button {
+      min-height: 46px; border-radius: 10px; border: 0.5px solid var(--border);
+      background: var(--bg-card); color: var(--text-2); font: 600 13px var(--font); cursor: pointer;
+    }
+    nav.onglets button.actif { background: var(--ek); color: #fff; border-color: var(--ek); }
+
+    .carte { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px;
+      padding: 14px; margin-bottom: 12px; }
+    h2 { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 8px; }
+    label { display: block; font-size: 12px; color: var(--text-3); margin: 10px 0 4px; }
+    input, select, textarea {
+      width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 10px;
+      border: 0.5px solid var(--border); background: var(--bg-card2); color: var(--text);
+      font: 15px var(--font);
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--ambre); outline-offset: 0; }
+    .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .aide { font-size: 12px; color: var(--text-3); line-height: 1.5; margin-top: 6px; }
+
+    .btn {
+      width: 100%; min-height: 50px; margin-top: 14px; padding: 12px 16px; background: var(--ek);
+      color: #fff; border: none; border-radius: 10px; cursor: pointer; font: 700 15px var(--font);
+    }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .lien-btn { background: none; border: none; color: var(--ek-clair); font: 13px var(--font);
+      cursor: pointer; padding: 8px 0; text-decoration: underline; }
+
+    .pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pastilles button { min-height: 40px; padding: 6px 12px; border-radius: 20px;
+      border: 0.5px solid var(--border); background: var(--bg-card2); color: var(--text-2);
+      font: 13px var(--font); cursor: pointer; }
+    .pastilles button.actif { background: var(--ek); color: #fff; border-color: var(--ek); }
+    .pastilles.petites button { min-height: 34px; font-size: 12px; padding: 4px 10px; }
+
+    /* Départ ⇄ arrivée : deux champs, un bouton pour inverser au milieu */
+    .itineraire { display: grid; grid-template-columns: 1fr 44px; gap: 8px; align-items: end; }
+    .itineraire .champs { display: grid; gap: 0; }
+    .inverser { height: 46px; width: 44px; margin-bottom: 0; border-radius: 10px; border: 0.5px solid var(--border);
+      background: var(--bg-card2); color: var(--ek-clair); font-size: 18px; cursor: pointer; align-self: center; }
+
+    .distance { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(201,136,42,0.1);
+      border: 0.5px solid rgba(201,136,42,0.45); display: flex; align-items: center; gap: 12px; }
+    .distance .km { font-size: 26px; font-weight: 700; color: #f0d9a8; white-space: nowrap; }
+    .distance .km input { width: 110px; min-height: 44px; font-size: 22px; font-weight: 700; text-align: right; padding: 6px 10px; }
+    .distance .detail { flex: 1; font-size: 12px; color: var(--text-3); line-height: 1.45; }
+    .distance .detail strong { color: var(--text-2); font-weight: 600; }
+
+    .recents { display: grid; gap: 6px; }
+    .recent { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      padding: 10px 12px; min-height: 50px; background: var(--bg-card2); color: var(--text);
+      border: 0.5px solid transparent; border-radius: 10px; cursor: pointer; font-family: var(--font); }
+    .recent:hover { border-color: var(--border); }
+    .recent .info { flex: 1; min-width: 0; }
+    .recent .nom { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent .meta { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent .kmr { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+
+    /* Liste des trajets */
+    .mois-titre { font-size: 12px; color: var(--ek-clair); font-weight: 700; margin: 14px 0 4px;
+      display: flex; justify-content: space-between; }
+    .mois-titre:first-child { margin-top: 0; }
+    .trajet { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+    .trajet:last-child { border-bottom: none; }
+    .trajet .jour { width: 38px; text-align: center; font-size: 11px; color: var(--text-3); line-height: 1.2; }
+    .trajet .jour strong { display: block; font-size: 18px; color: var(--text-2); }
+    .trajet .info { flex: 1; min-width: 0; }
+    .trajet .nom { font-weight: 600; font-size: 14px; }
+    .trajet .meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .trajet .kmr { font-size: 14px; color: var(--text-2); white-space: nowrap; text-align: right; }
+    .suppr { background: none; border: none; color: var(--text-3); font-size: 18px; cursor: pointer;
+      min-width: 36px; min-height: 36px; border-radius: 8px; }
+    .suppr:hover { color: var(--rouge); background: rgba(224,131,111,0.1); }
+
+    /* Bilan */
+    .chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .chiffre { background: var(--bg-card2); border-radius: 10px; padding: 12px; border-top: 2px solid var(--ambre); }
+    .chiffre .lib { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+    .chiffre .val { font-size: 24px; font-weight: 700; color: #f0d9a8; margin-top: 4px; }
+    .chiffre .leg { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .chiffre.principal { grid-column: 1 / -1; background: rgba(201,136,42,0.12); }
+    .chiffre.principal .val { font-size: 34px; }
+    .barres { display: grid; gap: 4px; }
+    .barre { display: grid; grid-template-columns: 70px 1fr 74px; gap: 8px; align-items: center; font-size: 12px; }
+    .barre .nomb { color: var(--text-3); }
+    .barre .piste { height: 14px; background: var(--bg-card2); border-radius: 4px; overflow: hidden; }
+    .barre .plein { height: 100%; background: linear-gradient(90deg, var(--ek), var(--ambre)); border-radius: 4px; }
+    .barre .v { text-align: right; color: var(--text-2); }
+    .barres.cat .barre { grid-template-columns: 130px 1fr 74px; }
+    .alerte { padding: 10px 12px; border-radius: 10px; background: rgba(224,131,111,0.1);
+      border-left: 2px solid var(--rouge); font-size: 13px; color: #f2c4b8; margin-bottom: 12px; line-height: 1.45; }
+    .info-bareme { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.5; }
+
+    .vide { color: var(--text-3); font-size: 13px; padding: 18px 0; text-align: center; }
+    #message {
+      position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 728px; margin: 0 auto;
+      padding: 14px 16px; border-radius: 12px; font-size: 14px; line-height: 1.4;
+      background: var(--bg-card2); border: 0.5px solid var(--border); color: var(--text);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: none; z-index: 10;
+    }
+    #message.ok { border-color: rgba(127,176,105,0.6); }
+    #message.erreur { border-color: rgba(224,131,111,0.7); color: #f2c4b8; }
+    .chargement { text-align: center; color: var(--text-3); padding: 40px 0; font-size: 14px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 420px) {
+      .barres.cat .barre { grid-template-columns: 100px 1fr 64px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="retour" href="/" aria-label="Retour au portail">←</a>
+    <!-- Version : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… le même jour). -->
+    <h1>Trajets IK <span class="version">v2026.10.06</span> <small id="etat">Chargement…</small></h1>
+    <button class="icone-btn" id="actualiser" title="Recharger">↻</button>
+  </header>
+
+  <nav class="onglets" id="onglets">
+    <button data-onglet="nouveau" class="actif">Nouveau trajet</button>
+    <button data-onglet="liste">Trajets</button>
+    <button data-onglet="bilan">Bilan</button>
+  </nav>
+
+  <div id="chargement" class="chargement">Chargement…</div>
+
+  <!-- ── Nouveau trajet ─────────────────────────────────────────────────────── -->
+  <section id="nouveau" hidden>
+    <div class="carte" id="bloc-recents" hidden>
+      <h2>Refaire un trajet récent</h2>
+      <div class="recents" id="recents"></div>
+    </div>
+
+    <div class="carte">
+      <h2>Itinéraire</h2>
+      <div class="itineraire">
+        <div class="champs">
+          <label for="t-depart">Départ</label>
+          <input id="t-depart" list="liste-lieux" autocomplete="off" placeholder="Lieu ou adresse">
+          <label for="t-arrivee">Arrivée</label>
+          <input id="t-arrivee" list="liste-lieux" autocomplete="off" placeholder="Lieu ou adresse">
+        </div>
+        <button type="button" class="inverser" id="t-inverser" title="Inverser départ et arrivée">⇅</button>
+      </div>
+      <div class="pastilles petites" id="t-frequents" style="margin-top:8px"></div>
+      <div id="t-memoriser" hidden>
+        <label for="t-nom-lieu">Mémoriser ce lieu sous le nom (facultatif)</label>
+        <input id="t-nom-lieu" autocomplete="off" placeholder="ex. Fournisseur verre Bordeaux">
+      </div>
+
+      <label>Trajet</label>
+      <div class="pastilles" id="t-ar">
+        <button type="button" data-ar="1">Aller-retour</button>
+        <button type="button" data-ar="0">Aller simple</button>
+      </div>
+
+      <div class="distance">
+        <div class="km"><input type="number" id="t-km" min="0" step="0.1" inputmode="decimal" placeholder="—"> km</div>
+        <div class="detail" id="t-detail">Indique départ et arrivée : la distance se calcule par la route.</div>
+      </div>
+    </div>
+
+    <div class="carte">
+      <h2>Pourquoi</h2>
+      <label for="t-motif">Motif (obligatoire)</label>
+      <input id="t-motif" autocomplete="off" placeholder="ex. Achat verre chez …, livraison lampe à Mme …">
+      <label>Catégorie</label>
+      <div class="pastilles" id="t-categories"></div>
+      <div class="ligne">
+        <div><label for="t-date">Date</label><input type="date" id="t-date"></div>
+        <div><label for="t-peage">Péage / parking (€)</label><input type="number" id="t-peage" min="0" step="0.01" inputmode="decimal" placeholder="facultatif"></div>
+      </div>
+      <div id="bloc-vehicules" hidden>
+        <label>Véhicule</label>
+        <div class="pastilles" id="t-vehicules"></div>
+      </div>
+      <label for="t-note">Note (facultatif)</label>
+      <input id="t-note" autocomplete="off">
+      <button class="btn" id="t-valider">Enregistrer le trajet</button>
+    </div>
+  </section>
+
+  <!-- ── Liste ─────────────────────────────────────────────────────────────── -->
+  <section id="liste" hidden>
+    <div class="carte">
+      <div class="pastilles petites" id="l-annees" style="margin-bottom:12px"></div>
+      <div id="l-trajets"></div>
+    </div>
+  </section>
+
+  <!-- ── Bilan ─────────────────────────────────────────────────────────────── -->
+  <section id="bilan" hidden>
+    <div class="pastilles petites" id="b-annees" style="margin-bottom:12px"></div>
+    <div id="b-alertes"></div>
+    <div class="carte">
+      <div class="chiffres" id="b-chiffres"></div>
+      <p class="info-bareme" id="b-bareme"></p>
+    </div>
+    <div class="carte">
+      <h2>Km par mois</h2>
+      <div class="barres" id="b-mois"></div>
+    </div>
+    <div class="carte">
+      <h2>Km par catégorie</h2>
+      <div class="barres cat" id="b-cat"></div>
+    </div>
+    <p class="aide" style="text-align:center"><a id="b-classeur" href="#" target="_blank" rel="noopener">Ouvrir le classeur (bilan complet)</a></p>
+  </section>
+
+  <datalist id="liste-lieux"></datalist>
+  <div id="message" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── API et clé d'accès ─────────────────────────────────────────────────
+     La clé est saisie une fois par appareil et ne circule que dans le corps des
+     requêtes, jamais dans l'URL. */
+  var URL_API_DEFAUT = 'https://script.google.com/macros/s/AKfycbz_XIwgPfSSu745kcTFYFbPGOidfK2pS--W3GN5V3YFKoCXxcRsTmR0nJt1m881PYFk/exec';
+  var CLE_STOCKAGE = 'ekaye_ik_cle';
+  var URL_STOCKAGE = 'ekaye_ik_url_api';
+  var BROUILLON = 'ekaye_ik_brouillon';
+
+  function lire(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function ecrire(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function effacer(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  // En local (maquette de test), l'API est servie par la même adresse que la page.
+  function urlApi() {
+    return lire(URL_STOCKAGE) || (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + '/api' : URL_API_DEFAUT);
+  }
+
+  function cleAcces(redemander) {
+    var cle = redemander ? null : lire(CLE_STOCKAGE);
+    if (!cle) {
+      cle = (window.prompt("Clé d'accès Trajets IK :") || '').trim();
+      if (!cle) return null;
+      ecrire(CLE_STOCKAGE, cle);
+    }
+    return cle;
+  }
+
+  /* text/plain évite la requête préalable CORS, qu'Apps Script ne sait pas servir.
+     Google renvoie parfois un 404 alors que le script a tourné : on réessaie avec le
+     même jeton, le serveur resservira le résultat au lieu d'enregistrer deux fois. */
+  var ESSAIS = 3;
+  function nouveauJeton() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+
+  function appel(action, data, dejaRedemande, jeton, essai) {
+    if (!urlApi()) return Promise.reject(new Error("Adresse de l'API non configurée."));
+    var cle = cleAcces(false);
+    if (!cle) return Promise.reject(new Error("Clé d'accès requise."));
+    if ((action === 'trajet' || action === 'supprimer') && !jeton) jeton = nouveauJeton();
+    essai = essai || 1;
+    return fetch(urlApi(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, cle: cle, data: data || {}, jeton: jeton || '' })
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        try { return JSON.parse(t); }
+        catch (e) { var err = new Error('Réponse illisible du serveur (HTTP ' + r.status + ').'); err.reessayer = true; throw err; }
+      });
+    }, function () {
+      var err = new Error('Réseau indisponible.'); err.reessayer = true; throw err;
+    }).then(function (rep) {
+      if (rep && rep.authRefusee) {
+        effacer(CLE_STOCKAGE);
+        if (!dejaRedemande && cleAcces(true)) return appel(action, data, true, jeton);
+        throw new Error("Clé d'accès refusée.");
+      }
+      if (rep && rep.erreur) throw new Error(rep.erreur);
+      return rep;
+    }).catch(function (err) {
+      if (!err.reessayer || essai >= ESSAIS) throw err;
+      $('etat').textContent = 'Google ne répond pas bien, nouvel essai (' + (essai + 1) + '/' + ESSAIS + ')…';
+      return new Promise(function (ok) { setTimeout(ok, 1500 * essai); })
+        .then(function () { return appel(action, data, dejaRedemande, jeton, essai + 1); });
+    });
+  }
+
+  /* ── État et outils ────────────────────────────────────────────────────── */
+  var etat = { trajets: [], vehicules: [], lieux: [], categories: [], bareme: [], charge: false,
+               ar: true, categorie: '', vehicule: '', anneeListe: null, anneeBilan: null, calcul: null };
+  var $ = function (id) { return document.getElementById(id); };
+  var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+  function echapper(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function nombre(n, dec) { return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: dec == null ? 1 : dec }); }
+  function euros(n, dec) {
+    dec = dec == null ? 2 : dec;
+    return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €';
+  }
+  function aujourdhui() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function anneeDe(t) { return Number(t.date.slice(0, 4)); }
+  function lieu(nom) {
+    var n = String(nom || '').trim().toLowerCase();
+    for (var i = 0; i < etat.lieux.length; i++) if (etat.lieux[i].nom.toLowerCase() === n) return etat.lieux[i];
+    return null;
+  }
+  function vehiculesActifs() { return etat.vehicules.filter(function (v) { return v.actif; }); }
+
+  var minuterie = null;
+  function message(texte, type) {
+    var m = $('message');
+    m.className = type || '';
+    m.textContent = texte;
+    m.style.display = 'block';
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function () { m.style.display = 'none'; }, type === 'erreur' ? 9000 : 6000);
+  }
+  function occupe(bouton, oui, texte) {
+    bouton.disabled = oui;
+    if (oui) { bouton.dataset.texte = bouton.textContent; bouton.textContent = texte || 'Envoi…'; }
+    else if (bouton.dataset.texte) bouton.textContent = bouton.dataset.texte;
+  }
+
+  /* ── Barème : même calcul que la formule du Bilan dans le classeur ─────────
+     Il s'applique au total annuel d'un véhicule ; année absente → dernière connue. */
+  function baremePour(annee, cv) {
+    var annees = etat.bareme.map(function (b) { return b.annee; });
+    var connues = annees.filter(function (a) { return a <= annee; });
+    var an = connues.length ? Math.max.apply(null, connues) : Math.max.apply(null, annees);
+    var cl = cv <= 3 ? 3 : Math.min(cv, 7);
+    var ligne = etat.bareme.filter(function (b) { return b.annee === an && b.cv === cl; })[0];
+    return ligne ? { annee: an, l: ligne } : null;
+  }
+  function ik(km, vehicule, annee) {
+    if (!vehicule || !vehicule.cv || !km) return null;
+    var b = baremePour(annee, vehicule.cv);
+    if (!b) return null;
+    var l = b.l;
+    var v = km <= 5000 ? km * l.a1 : km <= 20000 ? km * l.a2 + l.b2 : km * l.a3;
+    if (vehicule.electrique) v *= 1.2;
+    return { montant: Math.round(v * 100) / 100, annee: b.annee };
+  }
+
+  /* ── Chargement ────────────────────────────────────────────────────────── */
+  function charger() {
+    $('etat').textContent = 'Chargement…';
+    return appel('donnees').then(function (rep) {
+      etat.trajets = rep.trajets || [];
+      etat.vehicules = rep.vehicules || [];
+      etat.lieux = rep.lieux || [];
+      etat.categories = rep.categories || [];
+      etat.bareme = rep.bareme || [];
+      etat.departHabituel = rep.departHabituel || '';
+      etat.urlClasseur = rep.urlClasseur || '';
+      if (!etat.charge) {
+        etat.ar = rep.arDefaut !== false;
+        var actifs = vehiculesActifs();
+        etat.vehicule = actifs.length ? actifs[0].immat : '';
+        if (!$('t-depart').value) $('t-depart').value = etat.departHabituel;
+        restaurerBrouillon();
+      }
+      etat.charge = true;
+      $('chargement').hidden = true;
+      var an = new Date().getFullYear();
+      var cetteAnnee = etat.trajets.filter(function (t) { return anneeDe(t) === an; });
+      $('etat').textContent = cetteAnnee.length + ' trajets en ' + an + ' · ' +
+        nombre(cetteAnnee.reduce(function (s, t) { return s + t.km; }, 0), 0) + ' km';
+      $('b-classeur').href = etat.urlClasseur || '#';
+      dessinerTout();
+      afficher(ongletCourant);
+    }).catch(function (err) {
+      $('chargement').textContent = 'Impossible de charger : ' + err.message;
+      $('etat').textContent = 'Hors service';
+    });
+  }
+
+  function dessinerTout() {
+    $('liste-lieux').innerHTML = etat.lieux.map(function (l) {
+      return '<option value="' + echapper(l.nom) + '">' + (l.adresse ? echapper(l.adresse) : '') + '</option>';
+    }).join('');
+    dessinerRecents();
+    dessinerFrequents();
+    dessinerAR();
+    dessinerCategories();
+    dessinerVehicules();
+    majMemoriser();
+    dessinerListe();
+    dessinerBilan();
+  }
+
+  /* ── Onglets ───────────────────────────────────────────────────────────── */
+  var ONGLETS = ['nouveau', 'liste', 'bilan'];
+  var ongletCourant = ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'nouveau';
+  window.addEventListener('hashchange', function () {
+    var n = location.hash.slice(1);
+    if (ONGLETS.indexOf(n) >= 0) afficher(n);
+  });
+  function afficher(nom) {
+    ongletCourant = nom;
+    ONGLETS.forEach(function (n) { $(n).hidden = (n !== nom) || !etat.charge; });
+    Array.prototype.forEach.call(document.querySelectorAll('#onglets button'), function (b) {
+      b.classList.toggle('actif', b.getAttribute('data-onglet') === nom);
+    });
+  }
+  $('onglets').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-onglet]');
+    if (b) afficher(b.getAttribute('data-onglet'));
+  });
+
+  /* ── Trajets récents : un appui recopie l'itinéraire, la catégorie et le motif ── */
+  function dessinerRecents() {
+    var vus = {}, liste = [];
+    etat.trajets.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : b.ligne - a.ligne; })
+      .forEach(function (t) {
+        var k = (t.depart + '→' + t.arrivee + '|' + t.ar).toLowerCase();
+        if (vus[k] || liste.length >= 5) return;
+        vus[k] = true; liste.push(t);
+      });
+    $('bloc-recents').hidden = !liste.length;
+    $('recents').innerHTML = liste.map(function (t, i) {
+      return '<button type="button" class="recent" data-recent="' + i + '"><span class="info">' +
+        '<span class="nom">' + echapper(t.depart) + ' → ' + echapper(t.arrivee) + '</span>' +
+        '<span class="meta">' + echapper([t.categorie, t.motif].filter(Boolean).join(' · ')) + '</span></span>' +
+        '<span class="kmr">' + nombre(t.km) + ' km' + (t.ar ? ' A/R' : '') + '</span></button>';
+    }).join('');
+    etat.recents = liste;
+  }
+  $('recents').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-recent]');
+    if (!b) return;
+    var t = etat.recents[Number(b.getAttribute('data-recent'))];
+    $('t-depart').value = t.depart;
+    $('t-arrivee').value = t.arrivee;
+    etat.ar = t.ar; dessinerAR();
+    etat.categorie = t.categorie; dessinerCategories();
+    if (t.vehicule) { etat.vehicule = t.vehicule; dessinerVehicules(); }
+    $('t-motif').value = t.motif;
+    $('t-km').value = t.km;
+    etat.calcul = { aller: t.ar ? t.km / 2 : t.km, cle: cleItineraire(), source: 'recent' };
+    $('t-detail').innerHTML = 'Repris du trajet du ' + echapper(dateCourte(t.date)) + '. Vérifie la date et le motif.';
+    majMemoriser();
+    sauverBrouillon();
+    $('t-motif').focus();
+  });
+
+  /* Destinations les plus utilisées, en raccourci sous l'arrivée */
+  function dessinerFrequents() {
+    var liste = etat.lieux.filter(function (l) { return l.nom !== etat.departHabituel; })
+      .sort(function (a, b) { return b.usages - a.usages; }).slice(0, 6);
+    $('t-frequents').innerHTML = liste.map(function (l) {
+      return '<button type="button" data-lieu="' + echapper(l.nom) + '">' + echapper(l.nom) + '</button>';
+    }).join('');
+  }
+  $('t-frequents').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-lieu]');
+    if (!b) return;
+    var l = lieu(b.getAttribute('data-lieu'));
+    $('t-arrivee').value = l.nom;
+    if (l.categorie && !etat.categorie) { etat.categorie = l.categorie; dessinerCategories(); }
+    majMemoriser();
+    calculerDistance();
+  });
+
+  $('t-inverser').addEventListener('click', function () {
+    var d = $('t-depart').value;
+    $('t-depart').value = $('t-arrivee').value;
+    $('t-arrivee').value = d;
+    majMemoriser();
+    calculerDistance();
+  });
+
+  /* Lieu tapé à la main (adresse) → proposer de le mémoriser sous un nom court */
+  function majMemoriser() {
+    var a = $('t-arrivee').value.trim();
+    $('t-memoriser').hidden = !a || !!lieu(a);
+  }
+
+  function dessinerAR() {
+    Array.prototype.forEach.call(document.querySelectorAll('#t-ar button'), function (b) {
+      b.classList.toggle('actif', (b.getAttribute('data-ar') === '1') === etat.ar);
+    });
+  }
+  $('t-ar').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ar]');
+    if (!b) return;
+    var avant = etat.ar;
+    etat.ar = b.getAttribute('data-ar') === '1';
+    dessinerAR();
+    // La distance suit le choix : on double ou on divise ce qui est affiché
+    var km = Number($('t-km').value);
+    if (km > 0 && avant !== etat.ar) $('t-km').value = Math.round((etat.ar ? km * 2 : km / 2) * 10) / 10;
+    afficherDetailDistance();
+    sauverBrouillon();
+  });
+
+  function dessinerCategories() {
+    $('t-categories').innerHTML = etat.categories.map(function (c) {
+      return '<button type="button" data-cat="' + echapper(c) + '"' + (etat.categorie === c ? ' class="actif"' : '') + '>' + echapper(c) + '</button>';
+    }).join('');
+  }
+  $('t-categories').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cat]');
+    if (!b) return;
+    var c = b.getAttribute('data-cat');
+    etat.categorie = etat.categorie === c ? '' : c;
+    dessinerCategories();
+    sauverBrouillon();
+  });
+
+  function dessinerVehicules() {
+    var actifs = vehiculesActifs();
+    $('bloc-vehicules').hidden = actifs.length < 2;
+    $('t-vehicules').innerHTML = actifs.map(function (v) {
+      return '<button type="button" data-veh="' + echapper(v.immat) + '"' + (etat.vehicule === v.immat ? ' class="actif"' : '') + '>' +
+        echapper(v.libelle ? v.libelle + ' · ' + v.immat : v.immat) + '</button>';
+    }).join('');
+  }
+  $('t-vehicules').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-veh]');
+    if (!b) return;
+    etat.vehicule = b.getAttribute('data-veh');
+    dessinerVehicules();
+  });
+
+  /* ── Distance par la route ───────────────────────────────────────────────
+     Calculée dès que départ et arrivée sont remplis ; le champ km reste modifiable
+     (détour, chantier…). Une saisie à la main n'est jamais écrasée sans nouvel itinéraire. */
+  function cleItineraire() { return ($('t-depart').value.trim() + '→' + $('t-arrivee').value.trim()).toLowerCase(); }
+  var calculEnCours = 0;
+  function calculerDistance() {
+    var dep = $('t-depart').value.trim(), arr = $('t-arrivee').value.trim();
+    if (!dep || !arr) return;
+    var cle = cleItineraire();
+    if (etat.calcul && etat.calcul.cle === cle) return;
+    var n = ++calculEnCours;
+    $('t-detail').textContent = 'Calcul de la distance…';
+    appel('distance', { depart: dep, arrivee: arr }).then(function (rep) {
+      if (n !== calculEnCours) return;
+      etat.calcul = { aller: rep.km, cle: cle, depart: rep.depart, arrivee: rep.arrivee, duree: rep.duree };
+      $('t-km').value = Math.round((etat.ar ? rep.km * 2 : rep.km) * 10) / 10;
+      afficherDetailDistance();
+      sauverBrouillon();
+    }).catch(function (err) {
+      if (n !== calculEnCours) return;
+      etat.calcul = null;
+      $('t-detail').textContent = err.message + ' Tu peux saisir les km à la main.';
+    });
+  }
+  function afficherDetailDistance() {
+    var c = etat.calcul;
+    if (!c || c.source === 'recent') return;
+    $('t-detail').innerHTML = '<strong>' + nombre(c.aller) + ' km</strong> par la route' + (c.duree ? ' (' + echapper(c.duree) + ')' : '') +
+      (etat.ar ? ', × 2 pour l\'aller-retour' : '') + '<br>' + echapper(c.depart || '') + ' → ' + echapper(c.arrivee || '');
+  }
+  ['t-depart', 't-arrivee'].forEach(function (id) {
+    $(id).addEventListener('change', function () { majMemoriser(); calculerDistance(); sauverBrouillon(); });
+    $(id).addEventListener('input', function () { majMemoriser(); });
+  });
+  $('t-km').addEventListener('input', function () {
+    if (etat.calcul) $('t-detail').textContent = 'Distance modifiée à la main.';
+    etat.calcul = etat.calcul ? { cle: etat.calcul.cle, aller: null, source: 'main' } : null;
+    sauverBrouillon();
+  });
+
+  /* ── Brouillon : un trajet commencé survit à un rechargement ──────────── */
+  var CHAMPS = ['t-depart', 't-arrivee', 't-km', 't-motif', 't-peage', 't-note', 't-date', 't-nom-lieu'];
+  function sauverBrouillon() {
+    var b = { ar: etat.ar, categorie: etat.categorie };
+    CHAMPS.forEach(function (id) { b[id] = $(id).value; });
+    ecrire(BROUILLON, JSON.stringify(b));
+  }
+  function restaurerBrouillon() {
+    var b; try { b = JSON.parse(lire(BROUILLON) || 'null'); } catch (e) { b = null; }
+    if (!b || !(b['t-arrivee'] || b['t-motif'])) return;
+    CHAMPS.forEach(function (id) { if (b[id]) $(id).value = b[id]; });
+    etat.ar = b.ar !== false; etat.categorie = b.categorie || '';
+    if (b['t-km']) $('t-detail').textContent = 'Trajet en cours de saisie, repris.';
+    etat.calcul = b['t-km'] ? { cle: cleItineraire(), source: 'main' } : null;
+  }
+  ['t-motif', 't-peage', 't-note', 't-date', 't-nom-lieu'].forEach(function (id) { $(id).addEventListener('input', sauverBrouillon); });
+
+  function viderFormulaire() {
+    ['t-arrivee', 't-km', 't-motif', 't-peage', 't-note', 't-nom-lieu'].forEach(function (id) { $(id).value = ''; });
+    $('t-depart').value = etat.departHabituel;
+    $('t-date').value = aujourdhui();
+    etat.categorie = ''; etat.calcul = null;
+    $('t-detail').textContent = 'Indique départ et arrivée : la distance se calcule par la route.';
+    effacer(BROUILLON);
+  }
+
+  /* ── Enregistrement ────────────────────────────────────────────────────── */
+  $('t-valider').addEventListener('click', function () {
+    var depart = $('t-depart').value.trim(), arrivee = $('t-arrivee').value.trim();
+    var km = Number($('t-km').value);
+    if (!depart || !arrivee) { message('Indique le départ et l\'arrivée.', 'erreur'); return; }
+    if (!(km > 0)) { message('Indique les kilomètres (ou attends le calcul).', 'erreur'); return; }
+    if (!$('t-motif').value.trim()) { message('Le motif est obligatoire : c\'est lui qui justifie le trajet.', 'erreur'); $('t-motif').focus(); return; }
+    if (!$('t-date').value) { message('Indique la date.', 'erreur'); return; }
+    var nomLieu = $('t-nom-lieu').value.trim();
+    var data = { date: $('t-date').value, depart: depart, arrivee: arrivee, ar: etat.ar, km: km,
+      motif: $('t-motif').value.trim(), categorie: etat.categorie, vehicule: etat.vehicule,
+      peage: $('t-peage').value === '' ? '' : Number($('t-peage').value), note: $('t-note').value.trim(),
+      memoriser: (nomLieu && !lieu(arrivee)) ? { nom: nomLieu, adresse: arrivee } : null };
+    var bouton = this;
+    occupe(bouton, true);
+    appel('trajet', data).then(function (rep) {
+      message('Trajet enregistré : ' + depart + ' → ' + rep.arrivee + ', ' + nombre(rep.km) + ' km.', 'ok');
+      viderFormulaire();
+      return charger();
+    }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+
+  /* ── Liste des trajets d'une année, par mois ───────────────────────────── */
+  function annees() {
+    var a = {}; a[new Date().getFullYear()] = true;
+    etat.trajets.forEach(function (t) { a[anneeDe(t)] = true; });
+    return Object.keys(a).map(Number).sort(function (x, y) { return y - x; });
+  }
+  function pastillesAnnees(id, choisie) {
+    $(id).innerHTML = annees().map(function (a) {
+      return '<button type="button" data-annee="' + a + '"' + (a === choisie ? ' class="actif"' : '') + '>' + a + '</button>';
+    }).join('');
+  }
+  function dateCourte(iso) {
+    var p = iso.split('-');
+    return Number(p[2]) + ' ' + MOIS_COURTS[Number(p[1]) - 1];
+  }
+
+  function dessinerListe() {
+    var an = etat.anneeListe || new Date().getFullYear();
+    pastillesAnnees('l-annees', an);
+    var liste = etat.trajets.filter(function (t) { return anneeDe(t) === an; })
+      .sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : b.ligne - a.ligne; });
+    if (!liste.length) { $('l-trajets').innerHTML = '<div class="vide">Aucun trajet en ' + an + '.</div>'; return; }
+    var html = '', moisCourant = -1;
+    liste.forEach(function (t) {
+      var m = Number(t.date.slice(5, 7)) - 1;
+      if (m !== moisCourant) {
+        moisCourant = m;
+        var duMois = liste.filter(function (x) { return Number(x.date.slice(5, 7)) - 1 === m; });
+        html += '<div class="mois-titre"><span>' + MOIS[m] + '</span><span>' +
+          nombre(duMois.reduce(function (s, x) { return s + x.km; }, 0), 0) + ' km</span></div>';
+      }
+      var p = t.date.split('-');
+      html += '<div class="trajet"><div class="jour"><strong>' + Number(p[2]) + '</strong>' + MOIS_COURTS[Number(p[1]) - 1] + '</div>' +
+        '<div class="info"><div class="nom">' + echapper(t.depart) + ' → ' + echapper(t.arrivee) + '</div>' +
+        '<div class="meta">' + echapper([t.motif, t.categorie, t.peage ? euros(t.peage) + ' péage/parking' : ''].filter(Boolean).join(' · ')) + '</div></div>' +
+        '<div class="kmr">' + nombre(t.km) + ' km' + (t.ar ? '<br><small>A/R</small>' : '') + '</div>' +
+        '<button type="button" class="suppr" data-suppr="' + t.ligne + '" title="Supprimer ce trajet">×</button></div>';
+    });
+    $('l-trajets').innerHTML = html;
+  }
+  $('l-annees').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-annee]');
+    if (b) { etat.anneeListe = Number(b.getAttribute('data-annee')); dessinerListe(); }
+  });
+  $('l-trajets').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-suppr]');
+    if (!b) return;
+    var ligne = Number(b.getAttribute('data-suppr'));
+    var t = etat.trajets.filter(function (x) { return x.ligne === ligne; })[0];
+    if (!t || !confirm('Supprimer le trajet du ' + dateCourte(t.date) + ' : ' + t.depart + ' → ' + t.arrivee +
+        ' (' + nombre(t.km) + ' km) ?')) return;
+    b.disabled = true;
+    appel('supprimer', { ligne: t.ligne, date: t.date, arrivee: t.arrivee, km: t.km }).then(function () {
+      message('Trajet supprimé.', 'ok');
+      return charger();
+    }).catch(function (err) { message(err.message, 'erreur'); b.disabled = false; });
+  });
+
+  /* ── Bilan de l'année ──────────────────────────────────────────────────── */
+  function dessinerBilan() {
+    var an = etat.anneeBilan || new Date().getFullYear();
+    pastillesAnnees('b-annees', an);
+    var liste = etat.trajets.filter(function (t) { return anneeDe(t) === an; });
+    var km = liste.reduce(function (s, t) { return s + t.km; }, 0);
+    var peages = liste.reduce(function (s, t) { return s + t.peage; }, 0);
+
+    // IK par véhicule (le barème porte sur le total annuel de chacun)
+    var alertes = [], total = 0, anneeBareme = null, details = [];
+    var parVeh = {};
+    liste.forEach(function (t) {
+      var k = t.vehicule || (etat.vehicules[0] && etat.vehicules[0].immat) || '';
+      parVeh[k] = (parVeh[k] || 0) + t.km;
+    });
+    Object.keys(parVeh).forEach(function (immat) {
+      var v = etat.vehicules.filter(function (x) { return x.immat === immat; })[0];
+      var r = ik(parVeh[immat], v, an);
+      if (!r) { alertes.push('Puissance fiscale manquante pour ' + (immat || 'le véhicule') + ' : à renseigner dans l\'onglet Véhicules du classeur.'); return; }
+      total += r.montant; anneeBareme = r.annee;
+      details.push((v.libelle || immat) + ' ' + v.cv + ' CV' + (v.electrique ? ' électrique' : '') + ' : ' + nombre(parVeh[immat], 0) + ' km');
+    });
+    $('b-alertes').innerHTML = alertes.map(function (a) { return '<div class="alerte">' + echapper(a) + '</div>'; }).join('');
+
+    var ikTexte = alertes.length && !total ? '—' : euros(total, 0);
+    $('b-chiffres').innerHTML =
+      '<div class="chiffre principal"><div class="lib">IK déductibles ' + an + '</div><div class="val">' + ikTexte + '</div>' +
+        '<div class="leg">' + (peages ? '+ ' + euros(peages) + ' de péages et parkings' : 'au barème fiscal') + '</div></div>' +
+      '<div class="chiffre"><div class="lib">Km professionnels</div><div class="val">' + nombre(km, 0) + '</div><div class="leg">sur l\'année</div></div>' +
+      '<div class="chiffre"><div class="lib">Trajets</div><div class="val">' + liste.length + '</div><div class="leg">' +
+        (liste.length ? 'moy. ' + nombre(km / liste.length, 0) + ' km' : '&nbsp;') + '</div></div>';
+    $('b-bareme').textContent = anneeBareme
+      ? 'Barème ' + anneeBareme + (anneeBareme !== an ? ' (provisoire : celui de ' + an + ' n\'est pas encore saisi)' : '') +
+        ' · ' + details.join(' · ') + '. Il couvre carburant, entretien, assurance et usure : ne pas les déduire en plus.'
+      : '';
+
+    // Par mois
+    var mois = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    liste.forEach(function (t) { mois[Number(t.date.slice(5, 7)) - 1] += t.km; });
+    var max = Math.max.apply(null, mois) || 1;
+    $('b-mois').innerHTML = mois.map(function (v, i) {
+      return '<div class="barre"><span class="nomb">' + MOIS_COURTS[i] + '</span><span class="piste"><span class="plein" style="display:block;width:' +
+        (100 * v / max) + '%"></span></span><span class="v">' + (v ? nombre(v, 0) + ' km' : '') + '</span></div>';
+    }).join('');
+
+    // Par catégorie
+    var cats = {};
+    liste.forEach(function (t) { var c = t.categorie || 'Sans catégorie'; cats[c] = (cats[c] || 0) + t.km; });
+    var lc = Object.keys(cats).sort(function (a, b) { return cats[b] - cats[a]; });
+    var maxc = lc.length ? cats[lc[0]] : 1;
+    $('b-cat').innerHTML = lc.length ? lc.map(function (c) {
+      return '<div class="barre"><span class="nomb">' + echapper(c) + '</span><span class="piste"><span class="plein" style="display:block;width:' +
+        (100 * cats[c] / maxc) + '%"></span></span><span class="v">' + nombre(cats[c], 0) + ' km</span></div>';
+    }).join('') : '<div class="vide">Aucun trajet en ' + an + '.</div>';
+  }
+  $('b-annees').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-annee]');
+    if (b) { etat.anneeBilan = Number(b.getAttribute('data-annee')); dessinerBilan(); }
+  });
+
+  /* ── Démarrage ─────────────────────────────────────────────────────────── */
+  $('t-date').value = aujourdhui();
+  $('actualiser').addEventListener('click', charger);
+  charger();
+})();
+</script>
+</body>
+</html>

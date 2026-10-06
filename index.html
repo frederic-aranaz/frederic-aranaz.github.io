@@ -226,7 +226,7 @@
       <div class="titre">
         <!-- Version affichée = VERSION de sw.js : changer les deux ensemble à chaque publication.
              Elle dit sur le téléphone si c'est bien la dernière page qui est chargée. -->
-        <h1>EKAYE <span class="version">v15</span></h1>
+        <h1>EKAYE <span class="version">v16</span></h1>
         <p>Tous les outils, une seule icône</p>
       </div>
       <span class="etat-reseau" id="etatReseau">En ligne</span>
@@ -345,6 +345,25 @@
             <span>
               <span class="nom">Stock Atelier</span>
               <span class="desc">Réception, sortie, inventaire des matières.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <!-- Trajets IK (projet ik-ekaye) : comme Stock Atelier, sur le domaine donc
+               sans target, et data-reseau (distance Google Maps, écriture au classeur). -->
+          <a class="tuile" data-reseau href="https://frederic-aranaz.github.io/ik/">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/>
+                <circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Trajets IK</span>
+              <span class="desc">Noter un déplacement pro, km et indemnités de l'année.</span>
               <span class="motif-hors-ligne">Indisponible sans réseau</span>
             </span>
             <span class="fleche" aria-hidden="true">
