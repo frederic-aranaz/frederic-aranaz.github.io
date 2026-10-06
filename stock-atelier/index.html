@@ -27,6 +27,7 @@
     a { color: var(--ek-clair); }
     header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     header h1 { font-size: 19px; color: #e8d8b0; flex: 1; }
+    header h1 .version { font-size: 11px; font-weight: 400; color: var(--text-3); margin-left: 4px; letter-spacing: .02em; }
     header h1 small { display: block; font-size: 12px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
     .retour, .icone-btn {
       min-height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center;
@@ -134,7 +135,9 @@
 <body>
   <header>
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
-    <h1>Stock Atelier <small id="etat">Chargement…</small></h1>
+    <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
+         plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
+    <h1>Stock Atelier <span class="version">v2026.10.06</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
