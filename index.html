@@ -76,6 +76,7 @@
       font-size: 15px; font-weight: 600; color: #e8d8b0;
       letter-spacing: 0.14em;
     }
+    .titre h1 .version { font-size: 10px; font-weight: 400; letter-spacing: 0.04em; color: var(--text-3); margin-left: 4px; }
     .titre p { font-size: 11px; color: var(--text-3); margin-top: 2px; }
     .etat-reseau {
       margin-left: auto; font-size: 10px; font-weight: 700;
@@ -223,7 +224,9 @@
         </svg>
       </span>
       <div class="titre">
-        <h1>EKAYE</h1>
+        <!-- Version affichée = VERSION de sw.js : changer les deux ensemble à chaque publication.
+             Elle dit sur le téléphone si c'est bien la dernière page qui est chargée. -->
+        <h1>EKAYE <span class="version">v15</span></h1>
         <p>Tous les outils, une seule icône</p>
       </div>
       <span class="etat-reseau" id="etatReseau">En ligne</span>

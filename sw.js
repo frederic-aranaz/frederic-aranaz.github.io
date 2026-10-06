@@ -12,12 +12,15 @@
  * listés nommément : tout le reste passe sans qu'on y touche, et chaque appli
  * garde la main sur son propre cache.
  *
- * À CHAQUE PUBLICATION D'UNE NOUVELLE VERSION DE LA PAGE, incrémenter VERSION.
+ * À CHAQUE PUBLICATION D'UNE NOUVELLE VERSION DE LA PAGE, incrémenter VERSION — et la
+ * même valeur dans index.html (<span class="version"> après « EKAYE »).
  * Sans cela, les téléphones qui ont déjà installé le portail continueront de
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v14';  // v14 : tuile « À commander » retirée (les alertes passent
+var VERSION = 'v15';  // v15 : numéro de version affiché après « EKAYE » (même valeur
+                      //       dans index.html, <span class="version">)
+                      // v14 : tuile « À commander » retirée (les alertes passent
                       //       par Trello et le brief du matin) (05/10/2026)
                       // v13 : tuile « À commander » sous Stock Atelier
                       //       (05/10/2026)
