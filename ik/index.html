@@ -53,6 +53,10 @@
       font: 15px var(--font);
     }
     input:focus, select:focus, textarea:focus { outline: 2px solid var(--ambre); outline-offset: 0; }
+    /* Thème sombre pour les contrôles natifs : sinon l'icône du calendrier reste noire sur
+       fond sombre, donc invisible. */
+    input[type=date] { color-scheme: dark; cursor: pointer; }
+    input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.85; }
     .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .aide { font-size: 12px; color: var(--text-3); line-height: 1.5; margin-top: 6px; }
 
@@ -149,7 +153,7 @@
   <header>
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… le même jour). -->
-    <h1>Trajets IK <span class="version">v2026.10.06</span> <small id="etat">Chargement…</small></h1>
+    <h1>Trajets IK <span class="version">v2026.10.06-2</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger">↻</button>
   </header>
 
@@ -770,6 +774,11 @@
 
   /* ── Démarrage ─────────────────────────────────────────────────────────── */
   $('t-date').value = aujourdhui();
+  // Un appui n'importe où dans le champ ouvre le calendrier (sur ordinateur, seule la petite
+  // icône le faisait). showPicker n'existe pas partout : le champ reste alors saisissable.
+  $('t-date').addEventListener('click', function () {
+    try { if (this.showPicker) this.showPicker(); } catch (e) {}
+  });
   $('actualiser').addEventListener('click', charger);
   charger();
 })();
