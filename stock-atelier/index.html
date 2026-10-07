@@ -37,7 +37,7 @@
     }
 
     /* Onglets : des pastilles, pas un <select> — un geste, pas deux. */
-    nav.onglets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+    nav.onglets { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 16px; }
     nav.onglets button {
       min-height: 46px; border-radius: 10px; border: 0.5px solid var(--border);
       background: var(--bg-card); color: var(--text-2); font: 600 12px var(--font); cursor: pointer;
@@ -128,6 +128,32 @@
     #message a { color: var(--ek-clair); }
     .chargement { text-align: center; color: var(--text-3); padding: 40px 0; font-size: 14px; }
     [hidden] { display: none !important; }
+    /* Tableau de bord */
+    .chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .chiffre { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px;
+      padding: 12px; text-align: left; color: var(--text); font: inherit; }
+    button.chiffre { cursor: pointer; }
+    .chiffre .v { display: block; font-size: 21px; font-weight: 700; color: #e8d8b0; line-height: 1.15; }
+    .chiffre .l { display: block; font-size: 10px; color: var(--text-3); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-top: 4px; }
+    .chiffre.alerte .v { color: var(--rouge); }
+    .famille-ligne { display: block; width: 100%; text-align: left; background: var(--bg-card2);
+      border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;
+      color: var(--text); font: inherit; cursor: pointer; }
+    .famille-ligne .haut { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .famille-ligne .nom { font-weight: 600; font-size: 14px; }
+    .famille-ligne .val { font-size: 14px; color: var(--text-2); white-space: nowrap; }
+    .famille-ligne .meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .famille-ligne .meta .cmd { color: var(--rouge); font-weight: 700; }
+    .barre { height: 3px; border-radius: 2px; background: rgba(226,169,90,0.12); margin-top: 7px; overflow: hidden; }
+    .barre span { display: block; height: 100%; background: var(--ambre); }
+    .mvt { display: flex; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+    .mvt:last-child { border-bottom: 0; }
+    .mvt .q { min-width: 74px; text-align: right; font-weight: 700; white-space: nowrap; }
+    .mvt .q.plus { color: var(--vert); } .mvt .q.moins { color: var(--rouge); }
+    .mvt .info { flex: 1; min-width: 0; }
+    .mvt .info .nom { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mvt .info .meta { display: block; font-size: 11px; color: var(--text-3); }
     @media (max-width: 420px) {
       nav.onglets { grid-template-columns: repeat(3, 1fr); }
       .ligne3 { grid-template-columns: 1fr 1fr; }
@@ -139,12 +165,13 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.06-2</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.07</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
   <nav class="onglets" id="onglets">
-    <button data-onglet="reception" class="actif">Réception</button>
+    <button data-onglet="tableau" class="actif">Tableau de bord</button>
+    <button data-onglet="reception">Réception</button>
     <button data-onglet="sortie">Sortie</button>
     <button data-onglet="inventaire">Inventaire</button>
     <button data-onglet="commander">À commander<span class="badge" id="badge" hidden></span></button>
@@ -152,6 +179,12 @@
   </nav>
 
   <div id="chargement" class="chargement">Chargement du stock…</div>
+
+  <!-- ── Tableau de bord ───────────────────────────────────────────────────── -->
+  <!-- Les chiffres de l'onglet Accueil du classeur. Toucher une famille ouvre son inventaire. -->
+  <section id="tableau" hidden>
+    <div id="tableau-contenu"><div class="vide">Chargement du tableau de bord…</div></div>
+  </section>
 
   <!-- ── Réception ─────────────────────────────────────────────────────────── -->
   <section id="reception" hidden>
@@ -386,6 +419,7 @@
   /* ── Chargement ────────────────────────────────────────────────────────── */
   function charger() {
     $('etat').textContent = 'Chargement…';
+    etat.tableau = null;
     return appel('articles').then(function (rep) {
       etat.articles = rep.articles || [];
       etat.familles = rep.familles || [];
@@ -412,17 +446,18 @@
   /* ── Onglets ───────────────────────────────────────────────────────────── */
   /* Un onglet peut être ouvert d'emblée par l'adresse : /stock-atelier/#commander est la
      tuile « À commander » du portail. */
-  var ONGLETS = ['reception', 'sortie', 'inventaire', 'commander', 'nouveau'];
-  var ongletCourant = ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'reception';
+  var ONGLETS = ['tableau', 'reception', 'sortie', 'inventaire', 'commander', 'nouveau'];
+  var ongletCourant = ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'tableau';
   window.addEventListener('hashchange', function () {
     var n = location.hash.slice(1);
     if (ONGLETS.indexOf(n) >= 0) afficher(n);
   });
   function afficher(nom) {
     ongletCourant = nom;
-    ['reception', 'sortie', 'inventaire', 'commander', 'nouveau'].forEach(function (n) {
+    ONGLETS.forEach(function (n) {
       $(n).hidden = (n !== nom) || !etat.familles.length;
     });
+    if (nom === 'tableau' && etat.familles.length && !etat.tableau) chargerTableau();
     Array.prototype.forEach.call(document.querySelectorAll('#onglets button'), function (b) {
       b.classList.toggle('actif', b.getAttribute('data-onglet') === nom);
     });
@@ -663,6 +698,7 @@
     delete etat.choix[zone];
     dessinerChoix(zone);
     dessinerCommander();
+    etat.tableau = null;
   }
 
   function occupe(bouton, oui, texte) {
@@ -786,6 +822,63 @@
         (a.lien ? '<a class="icone-btn" href="' + echapper(a.lien) + '" target="_blank" rel="noopener">Commander</a>' : '') + '</div>';
     }).join('') : '<div class="vide">Rien à commander : tout est au-dessus du seuil.</div>';
   }
+
+  /* ── Tableau de bord ───────────────────────────────────────────────────── */
+  function euros(n) {
+    return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+  function chargerTableau() {
+    $('tableau-contenu').innerHTML = '<div class="vide">Chargement du tableau de bord…</div>';
+    appel('tableau').then(function (t) {
+      if (t.erreur) throw new Error(t.erreur);
+      etat.tableau = t;
+      dessinerTableau();
+    }).catch(function (err) {
+      $('tableau-contenu').innerHTML = '<div class="vide">Tableau de bord indisponible : ' + echapper(err.message) +
+        '<br><button type="button" class="btn sec" id="tableau-reessayer">Réessayer</button></div>';
+    });
+  }
+  function dessinerTableau() {
+    var t = etat.tableau;
+    var max = Math.max.apply(null, t.familles.map(function (f) { return f.valeur; }).concat([1]));
+    var chiffres = '<div class="chiffres">' +
+      '<div class="chiffre"><span class="v">' + euros(t.valeur) + '</span><span class="l">Valeur du stock</span></div>' +
+      '<div class="chiffre"><span class="v">' + nombre(t.refs) + '</span><span class="l">Références · ' + t.familles.length + ' familles</span></div>' +
+      '<button type="button" class="chiffre' + (t.aCommander ? ' alerte' : '') + '" data-aller="commander"><span class="v">' +
+        nombre(t.aCommander) + '</span><span class="l">À commander ›</span></button>' +
+      '<div class="chiffre"><span class="v">' + nombre(t.mouvements30) + '</span><span class="l">Mouvements · 30 jours</span></div>' +
+      '</div>';
+    var familles = '<div class="carte"><h2>Par famille</h2>' + t.familles.map(function (f) {
+      var part = t.valeur ? Math.round(f.valeur / t.valeur * 100) : 0;
+      return '<button type="button" class="famille-ligne" data-inventaire-famille="' + echapper(f.nom) + '">' +
+        '<div class="haut"><span class="nom">' + echapper(f.nom) + '</span><span class="val">' + euros(f.valeur) + '</span></div>' +
+        '<div class="meta">' + f.refs + ' réf' + (f.refs > 1 ? 's' : '') + ' · ' + part + ' % de la valeur' +
+          (f.aCommander ? ' · <span class="cmd">' + f.aCommander + ' à commander</span>' : '') + '</div>' +
+        '<div class="barre"><span style="width:' + Math.round(f.valeur / max * 100) + '%"></span></div></button>';
+    }).join('') + '<p class="aide">Toucher une famille ouvre son inventaire.</p></div>';
+    var mvts = '<div class="carte"><h2>Derniers mouvements</h2>' + (t.derniers.length ? t.derniers.map(function (m) {
+      var a = article(m.ref);
+      var signe = m.type === 'Sortie' ? -1 : 1;
+      var q = signe * m.quantite;
+      var d = m.date ? new Date(m.date) : null;
+      var quand = d ? d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' ' +
+        d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+      return '<div class="mvt"><span class="q ' + (q < 0 ? 'moins' : 'plus') + '">' + (q > 0 ? '+' : '') +
+        echapper(quantite(q, a ? a.unite : '')) + '</span><span class="info"><span class="nom">' + echapper(m.article) +
+        '</span><span class="meta">' + echapper([quand, m.type, m.ref].filter(Boolean).join(' · ')) + '</span></span></div>';
+    }).join('') : '<div class="vide">Aucun mouvement.</div>') + '</div>';
+    $('tableau-contenu').innerHTML = chiffres + familles + mvts;
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#tableau-reessayer')) { chargerTableau(); return; }
+    var f = e.target.closest('[data-inventaire-famille]');
+    if (!f) return;
+    etat.filtreFamille.inventaire = f.getAttribute('data-inventaire-famille');
+    delete etat.choix.inventaire;
+    dessinerChoix('inventaire');
+    afficher('inventaire');
+    window.scrollTo(0, 0);
+  });
 
   /* ── Nouvel article ────────────────────────────────────────────────────── */
   function dessinerFamillesNouveau() {
