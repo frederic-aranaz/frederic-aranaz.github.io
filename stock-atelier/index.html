@@ -128,6 +128,15 @@
     #message a { color: var(--ek-clair); }
     .chargement { text-align: center; color: var(--text-3); padding: 40px 0; font-size: 14px; }
     [hidden] { display: none !important; }
+    /* Inventaire en série */
+    .serie { background: rgba(201,136,42,0.10); border: 0.5px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 10px; }
+    .serie .haut { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--text-2); }
+    .serie .haut strong { color: #e8d8b0; }
+    .serie-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .serie-fin { text-align: center; padding: 6px 0; }
+    .serie-fin .btn { margin-top: 8px; }
+    .article .ok { color: var(--vert); font-weight: 700; margin-right: 4px; }
     /* Tableau de bord */
     .chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .chiffre { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px;
@@ -165,7 +174,7 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.07</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.07-2</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
@@ -235,7 +244,7 @@
       <h2>Article compté</h2>
       <div data-choix="inventaire"></div>
     </div>
-    <div class="carte">
+    <div class="carte" id="i-carte">
       <h2>Compte</h2>
       <div id="i-simple">
         <label for="i-compte" id="i-libelle">Quantité réellement en stock</label>
@@ -278,8 +287,11 @@
         <div><label for="n-unite">Unité de stock</label><input id="n-unite" autocomplete="off"></div>
         <div><label for="n-prix">Prix d'achat unitaire (€)</label><input type="number" id="n-prix" min="0" step="any" inputmode="decimal" placeholder="facultatif"></div>
       </div>
+      <label for="n-stock" id="n-stock-libelle">Stock déjà à l'atelier</label>
+      <input type="number" id="n-stock" min="0" step="any" inputmode="decimal" placeholder="facultatif">
+      <p class="aide" id="n-stock-aide">Si l'article est déjà là : la quantité part au journal avec la création.</p>
       <button class="btn" id="n-valider">Créer l'article</button>
-      <p class="aide">Une fois créé, il est proposé directement à la réception.</p>
+      <p class="aide">Sans stock indiqué, il est proposé directement à la réception.</p>
     </div>
   </section>
 
@@ -472,15 +484,20 @@
   });
 
   /* ── Choix d'un article (même composant pour les trois saisies) ────────── */
-  function ligneArticle(a) {
+  function ligneArticle(a, zone) {
+    var coche = zone === 'inventaire' && estCompte(a) ? '<span class="ok" title="Déjà compté">✓</span>' : '';
     return '<button type="button" class="article" data-ref="' + echapper(a.ref) + '">' +
-      '<span class="info"><span class="nom">' + echapper(a.designation) + '</span>' +
+      '<span class="info"><span class="nom">' + coche + echapper(a.designation) + '</span>' +
       '<span class="meta">' + echapper([a.ref, a.famille, a.marque, a.details].filter(Boolean).join(' · ')) + '</span></span>' +
       '<span class="stock' + (estBas(a) ? ' bas' : '') + '">' + echapper(quantite(a.stock, a.unite)) + '</span></button>';
   }
 
   function dessinerChoix(zone) {
     var boite = document.querySelector('[data-choix="' + zone + '"]');
+    if (zone === 'inventaire' && etat.serie && !etat.choix.inventaire) {
+      var suivant = prochainSerie();
+      if (suivant) etat.choix.inventaire = suivant;
+    }
     var ref = etat.choix[zone];
     var a = ref && article(ref);
     if (a) {
@@ -495,6 +512,7 @@
         '<div class="resultats" data-resultats="' + zone + '"></div>';
       filtrer(zone, '');
     }
+    if (zone === 'inventaire') habillerSerie(boite, a);
     dessinerQuantite(zone);
     if (zone === 'reception') {
       if (a && a.fournisseur && !$('r-fournisseur').value) $('r-fournisseur').value = a.fournisseur;
@@ -516,6 +534,77 @@
       dessinerMorceaux();
     }
   }
+
+  /* ── Inventaire en série : une famille, article après article ──────────────
+     Ce qui est compté est retenu sur l'appareil (par famille), pour reprendre plus tard
+     là où on s'est arrêté. « Passer » ne vaut que pour la série en cours. */
+  var COMPTES_STOCKAGE = 'ekaye_stock_comptes';
+  function comptes() {
+    try { return JSON.parse(lire(COMPTES_STOCKAGE) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function marquerCompte(a) {
+    var c = comptes();
+    (c[a.famille] = c[a.famille] || {})[a.ref] = new Date().toISOString();
+    ecrire(COMPTES_STOCKAGE, JSON.stringify(c));
+  }
+  function estCompte(a) { var c = comptes()[a.famille]; return !!(c && c[a.ref]); }
+  function articlesFamille(nom) { return etat.articles.filter(function (a) { return a.famille === nom; }); }
+  function nbComptes(nom) { return articlesFamille(nom).filter(estCompte).length; }
+  function prochainSerie() {
+    var s = etat.serie;
+    var reste = articlesFamille(s.famille).filter(function (a) { return !estCompte(a) && !s.passes[a.ref]; });
+    return reste.length ? reste[0].ref : null;
+  }
+  function bandeauSerie() {
+    var f = etat.serie.famille, n = nbComptes(f), total = articlesFamille(f).length;
+    return '<div class="serie"><div class="haut"><strong>Série ' + echapper(f) + '</strong><span>' + n + ' / ' + total +
+      ' comptés</span></div><div class="barre"><span style="width:' + (total ? Math.round(n / total * 100) : 0) + '%"></span></div></div>';
+  }
+  function habillerSerie(boite, a) {
+    $('i-carte').hidden = !!(etat.serie && !a);
+    if (!etat.serie) {
+      var f = etat.filtreFamille.inventaire;
+      if (!a && f) {
+        var n = nbComptes(f), total = articlesFamille(f).length;
+        var pastilles = boite.querySelector('.pastilles');
+        if (pastilles) pastilles.insertAdjacentHTML('afterend',
+          '<button type="button" class="btn sec" data-serie="demarrer" style="margin-bottom:10px">' +
+          (n ? 'Reprendre' : 'Compter') + ' toute la famille ' + echapper(f) + ' — ' + n + ' / ' + total + ' déjà comptés</button>');
+      }
+      return;
+    }
+    if (a) {
+      var changer = boite.querySelector('[data-changer]');
+      if (changer) { changer.textContent = 'Passer'; changer.removeAttribute('data-changer'); changer.setAttribute('data-serie', 'passer'); }
+      boite.insertAdjacentHTML('afterbegin', bandeauSerie());
+      boite.insertAdjacentHTML('beforeend', '<div class="serie-actions"><button type="button" class="lien-btn" data-serie="arreter">Arrêter la série</button></div>');
+      return;
+    }
+    var f2 = etat.serie.famille, passes = Object.keys(etat.serie.passes).length;
+    boite.innerHTML = bandeauSerie() + '<div class="serie-fin"><div class="vide">Série <strong>' + echapper(f2) +
+      '</strong> terminée' + (passes ? ' — ' + passes + ' article' + (passes > 1 ? 's' : '') + ' passé' + (passes > 1 ? 's' : '') : '') + '.</div>' +
+      (passes ? '<button type="button" class="btn" data-serie="revoir">Revoir les passés</button>' : '') +
+      '<button type="button" class="btn sec" data-serie="arreter">Terminer</button>' +
+      '<div class="serie-actions"><button type="button" class="lien-btn" data-serie="zero">Remettre la famille à zéro (nouvel inventaire)</button></div></div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-serie]');
+    if (!b) return;
+    var action = b.getAttribute('data-serie');
+    if (action === 'demarrer') etat.serie = { famille: etat.filtreFamille.inventaire, passes: {} };
+    else if (action === 'passer') etat.serie.passes[etat.choix.inventaire] = true;
+    else if (action === 'revoir') etat.serie.passes = {};
+    else if (action === 'arreter') etat.serie = null;
+    else if (action === 'zero') {
+      var f = etat.serie.famille;
+      if (!confirm('Effacer les coches « compté » de ' + f + ' sur cet appareil ? Le stock n\'est pas touché.')) return;
+      var c = comptes(); delete c[f]; ecrire(COMPTES_STOCKAGE, JSON.stringify(c));
+      etat.serie.passes = {};
+    }
+    delete etat.choix.inventaire;
+    dessinerChoix('inventaire');
+    window.scrollTo(0, 0);
+  });
 
   /* Pastilles « Toutes · Verres 59 · Plombs 6… » : la liste entière est trop longue à faire
      défiler sur le téléphone. La famille choisie reste choisie d'un article à l'autre. */
@@ -544,7 +633,8 @@
     });
     if (!fam) trouves = trouves.slice(0, 40);
     var boite = document.querySelector('[data-resultats="' + zone + '"]');
-    if (boite) boite.innerHTML = trouves.length ? trouves.map(ligneArticle).join('') : '<div class="vide">Aucun article.</div>';
+    if (boite) boite.innerHTML = trouves.length
+      ? trouves.map(function (a) { return ligneArticle(a, zone); }).join('') : '<div class="vide">Aucun article.</div>';
   }
 
   document.addEventListener('input', function (e) {
@@ -802,9 +892,15 @@
     var bouton = this;
     occupe(bouton, true);
     appel('inventaire', { ref: a.ref, compte: compte, motif: motif }).then(function (rep) {
+      marquerCompte(a);
       message(rep.ecart ? 'Inventaire enregistré : écart de ' + (rep.ecart > 0 ? '+' : '') + quantite(rep.ecart, a.unite) + ' — stock ' + quantite(rep.stock, a.unite)
                         : 'Stock confirmé : ' + quantite(rep.stock, a.unite) + ', aucun écart.', 'ok');
       apresMouvement('inventaire', rep);
+      if (etat.serie) {
+        window.scrollTo(0, 0);
+        var champ = $('i-compte');
+        if (champ && !$('i-simple').hidden) champ.focus();
+      }
     }).catch(function (err) { message(err.message, 'erreur'); })
       .then(function () { occupe(bouton, false); });
   });
@@ -891,6 +987,10 @@
       return '<div><label>' + echapper(s) + '</label><input data-spec="' + i + '" autocomplete="off"></div>';
     }).join('') + '</div>' : '';
     if (fam && !$('n-unite').dataset.modifie) $('n-unite').value = fam.unite;
+    $('n-stock-libelle').textContent = 'Stock déjà à l\'atelier' + (fam ? ' (' + (fam.parSurface ? 'cm²' : ($('n-unite').value || fam.unite)) + ')' : '');
+    $('n-stock-aide').textContent = fam && fam.parSurface
+      ? 'Surface totale en cm² : une feuille 30 x 30 = 900. Le détail par morceaux reste possible ensuite dans Inventaire.'
+      : 'Si l\'article est déjà là : la quantité part au journal avec la création.';
   }
   $('n-familles').addEventListener('click', function (e) {
     var b = e.target.closest('[data-famille]');
@@ -980,11 +1080,26 @@
     occupe(bouton, true);
     appel('article', { famille: etat.familleNouveau, designation: designation, marque: $('n-marque').value.trim(),
       fournisseur: $('n-fournisseur').value.trim(), unite: $('n-unite').value.trim(), details: details,
-      prix: $('n-prix').value === '' ? '' : Number($('n-prix').value) })
+      prix: $('n-prix').value === '' ? '' : Number($('n-prix').value),
+      stockInitial: $('n-stock').value === '' ? '' : Number($('n-stock').value) })
       .then(function (rep) {
         etat.articles = rep.articles || etat.articles;
-        message('Article créé : ' + rep.ref + ' — ' + designation + '. Saisis maintenant sa réception.', 'ok');
-        ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite', 'n-prix'].forEach(function (id) { $(id).value = ''; });
+        etat.tableau = null;
+        var avecStock = Number(rep.stock) > 0;
+        var unite = (article(rep.ref) || {}).unite;
+        message('Article créé : ' + rep.ref + ' — ' + designation + (avecStock
+          ? ', avec ' + quantite(rep.stock, unite) + ' en stock.' : '. Saisis maintenant sa réception.'), 'ok');
+        ['n-designation', 'n-marque', 'n-fournisseur', 'n-unite', 'n-prix', 'n-stock'].forEach(function (id) { $(id).value = ''; });
+        if (avecStock) {
+          // Déjà en stock : on reste sur « Nouvel article » pour enchaîner les oublis d'inventaire.
+          delete $('n-unite').dataset.modifie;
+          doublonAccepte = '';
+          montrerRessemblants();
+          dessinerFamillesNouveau();
+          ['reception', 'sortie', 'inventaire'].forEach(function (z) { dessinerChoix(z); });
+          dessinerCommander();
+          return;
+        }
         delete $('n-unite').dataset.modifie;
         doublonAccepte = '';
         montrerRessemblants();
