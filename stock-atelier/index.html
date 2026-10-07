@@ -206,7 +206,7 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.07-7</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.07-8</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
@@ -1401,7 +1401,8 @@
       '<button type="button" class="chiffre' + (t.aCommander ? ' alerte' : '') + '" data-aller="commander"><span class="v">' +
         nombre(t.aCommander) + '</span><span class="l">À commander ›</span></button>' +
       '<div class="chiffre"><span class="v">' + nombre(t.mouvements30) + '</span><span class="l">Mouvements · 30 jours</span></div>' +
-      '</div>';
+      '</div>' +
+      '<button type="button" class="btn sec" data-aller="etiquettes" style="margin:0 0 12px">Étiquettes QR des bacs (Niimbot D110)</button>';
     var familles = '<div class="carte"><h2>Par famille</h2>' + t.familles.map(function (f) {
       var part = t.valeur ? Math.round(f.valeur / t.valeur * 100) : 0;
       return '<button type="button" class="famille-ligne" data-inventaire-famille="' + echapper(f.nom) + '">' +
@@ -1410,7 +1411,7 @@
           (f.aCommander ? ' · <span class="cmd">' + f.aCommander + ' à commander</span>' : '') + '</div>' +
         '<div class="barre"><span style="width:' + Math.round(f.valeur / max * 100) + '%"></span></div></button>';
     }).join('') + '<p class="aide">Toucher une famille ouvre son inventaire.</p>' +
-      '<button type="button" class="lien-btn" data-aller="etiquettes">Imprimer des étiquettes QR pour les bacs (Niimbot D110)</button></div>';
+      '</div>';
     var mvts = '<div class="carte"><h2>Derniers mouvements</h2>' + (t.derniers.length ? t.derniers.map(function (m) {
       var a = article(m.ref);
       var signe = m.type === 'Sortie' ? -1 : 1;
