@@ -120,6 +120,11 @@
     .commande.groupe .membre { display: flex; gap: 10px; align-items: center; margin-top: 8px;
       padding: 8px 10px; border-radius: 8px; background: var(--bg-card2); }
     .commande.groupe .membre .info { flex: 1; font-size: 13px; }
+    .seuil-ligne { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+      font-size: 13px; color: var(--text-2); }
+    .seuil-ligne .lien-btn { padding: 0; }
+    .seuil-ligne input { width: 110px; min-height: 40px; }
+    .seuil-ligne .btn { width: auto; min-height: 40px; padding: 0 14px; margin: 0; }
     .etiquette-groupe { display: inline-block; font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
       color: var(--ek-clair); border: 0.5px solid var(--border); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
 
@@ -180,7 +185,7 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.07-4</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.07-5</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
@@ -514,7 +519,8 @@
         (a.prix ? ' · ' + prixTexte(a) : '') +
         (a.groupe ? '<br>Groupe <strong>' + echapper(a.groupe) + '</strong> : ' + echapper(quantite(stockGroupe(a.groupe), a.unite)) + ' au total' : '') +
         '</div></div>' +
-        '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>';
+        '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>' +
+        ligneSeuil(a, zone);
     } else {
       boite.innerHTML = pastillesFamilles(zone) +
         '<input type="search" placeholder="Chercher : nom, réf, marque, famille…" data-recherche="' + zone + '" autocomplete="off">' +
@@ -926,6 +932,49 @@
   });
 
   /* ── À commander ───────────────────────────────────────────────────────── */
+  /* ── Seuil mini, réglable depuis la page. Référence groupée : seuil du GROUPE. ── */
+  function ligneSeuil(a, zone, edition) {
+    var g = a.groupe ? groupe(a.groupe) : null;
+    var valeur = a.groupe ? (g ? g.seuil : null) : a.seuil;
+    var libelle = a.groupe ? 'Seuil du groupe <strong>' + echapper(a.groupe) + '</strong>' : 'Seuil mini';
+    if (edition) {
+      return '<div class="seuil-ligne" data-seuil-zone="' + zone + '">' + libelle + ' :' +
+        '<input type="number" min="0" step="any" inputmode="decimal" data-seuil-valeur value="' +
+          (valeur === null || valeur === undefined ? '' : valeur) + '" placeholder="aucun">' +
+        '<button type="button" class="btn" data-seuil-ok="' + zone + '">Enregistrer</button>' +
+        '<button type="button" class="lien-btn" data-seuil-annuler="' + zone + '">Annuler</button></div>';
+    }
+    return '<div class="seuil-ligne" data-seuil-zone="' + zone + '">' + libelle + ' : <strong>' +
+      (valeur === null || valeur === undefined ? 'aucun' : echapper(quantite(valeur, a.unite))) + '</strong>' +
+      '<button type="button" class="lien-btn" data-seuil-modifier="' + zone + '">Modifier</button></div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-seuil-modifier],[data-seuil-annuler],[data-seuil-ok]');
+    if (!b) return;
+    var zone = b.getAttribute('data-seuil-modifier') || b.getAttribute('data-seuil-annuler') || b.getAttribute('data-seuil-ok');
+    var a = article(etat.choix[zone]);
+    if (!a) return;
+    var ligne = b.closest('.seuil-ligne');
+    if (b.hasAttribute('data-seuil-modifier') || b.hasAttribute('data-seuil-annuler')) {
+      ligne.outerHTML = ligneSeuil(a, zone, b.hasAttribute('data-seuil-modifier'));
+      var champ = document.querySelector('[data-seuil-zone="' + zone + '"] [data-seuil-valeur]');
+      if (champ) { champ.focus(); champ.select(); }
+      return;
+    }
+    var v = ligne.querySelector('[data-seuil-valeur]').value;
+    if (v !== '' && !(Number(v) >= 0)) { message('Seuil invalide.', 'erreur'); return; }
+    occupe(b, true);
+    appel('seuil', { ref: a.ref, seuil: v === '' ? '' : Number(v) }).then(function (rep) {
+      etat.articles = rep.articles || etat.articles;
+      etat.groupes = rep.groupes || etat.groupes;
+      etat.tableau = null;
+      message((rep.groupe ? 'Seuil du groupe « ' + rep.groupe + ' »' : 'Seuil mini de « ' + a.designation + ' »') + ' : ' +
+        (rep.seuil === '' ? 'aucun' : quantite(rep.seuil, a.unite)) + '.', 'ok');
+      ['reception', 'sortie', 'inventaire'].forEach(function (z) { dessinerChoix(z); });
+      dessinerCommander();
+    }).catch(function (err) { message(err.message, 'erreur'); occupe(b, false); });
+  });
+
   /* ── Groupes : références interchangeables, un seul seuil (onglet Groupes du classeur) ── */
   function membresGroupe(nom) { return etat.articles.filter(function (a) { return a.groupe === nom; }); }
   function stockGroupe(nom) {
