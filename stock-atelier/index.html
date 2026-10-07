@@ -156,6 +156,19 @@
     .serie-fin { text-align: center; padding: 6px 0; }
     .serie-fin .btn { margin-top: 8px; }
     .article .ok { color: var(--vert); font-weight: 700; margin-right: 4px; }
+    /* Fiche d'un article (ouverte par le QR d'un bac) */
+    .fiche-nom { font-size: 19px; font-weight: 700; color: #e8d8b0; }
+    .fiche-stock { font-size: 28px; font-weight: 700; color: var(--text); margin: 10px 0 2px; }
+    .fiche-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .fiche-actions .btn { margin: 0; }
+    /* Étiquettes QR (Niimbot D110, 14 × 30 mm) */
+    .etq-liste label { display: flex; gap: 10px; align-items: center; margin: 0; padding: 8px 0;
+      border-bottom: 0.5px solid var(--border); color: var(--text); font-size: 14px; }
+    .etq-liste input { width: 20px; min-height: 20px; }
+    .etq-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+    .etq-carte { background: #fff; border-radius: 6px; padding: 6px; }
+    .etq-carte canvas { display: block; width: 100%; height: auto; }
+    .etq-carte button { width: 100%; margin-top: 6px; }
     /* Tableau de bord */
     .chiffres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .chiffre { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px;
@@ -193,7 +206,7 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.07-6</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.07-7</span> <small id="etat">Chargement…</small></h1>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
 
@@ -215,6 +228,26 @@
   <!-- Les chiffres de l'onglet Accueil du classeur. Toucher une famille ouvre son inventaire. -->
   <section id="tableau" hidden>
     <div id="tableau-contenu"><div class="vide">Chargement du tableau de bord…</div></div>
+  </section>
+
+  <!-- ── Fiche article : ouverte par le QR collé sur un bac (#a=RÉF) ─────────── -->
+  <section id="fiche" hidden>
+    <div class="carte" id="fiche-contenu"></div>
+  </section>
+
+  <!-- ── Étiquettes QR des bacs (depuis le tableau de bord) ─────────────────── -->
+  <section id="etiquettes" hidden>
+    <div class="carte">
+      <h2>Étiquettes QR des bacs — Niimbot D110</h2>
+      <p class="aide">Une image PNG de 30 × 14 mm par article (300 dpi). Dans l'application Niimbot : étiquette
+        <strong>14 × 30 mm</strong>, importer l'image <strong>sans marge ni mise à l'échelle</strong>.
+        Scanné avec l'appareil photo du téléphone, le QR ouvre la fiche de l'article.</p>
+      <div id="etq-familles"></div>
+      <div class="etq-liste" id="etq-liste"></div>
+      <button class="btn" id="etq-generer">Générer les étiquettes</button>
+      <div class="etq-grille" id="etq-grille"></div>
+      <button class="btn sec" id="etq-tout" hidden>Tout télécharger</button>
+    </div>
   </section>
 
   <!-- ── Réception ─────────────────────────────────────────────────────────── -->
@@ -590,9 +623,18 @@
   /* ── Onglets ───────────────────────────────────────────────────────────── */
   /* Un onglet peut être ouvert d'emblée par l'adresse : /stock-atelier/#commander est la
      tuile « À commander » du portail. */
-  var ONGLETS = ['tableau', 'reception', 'sortie', 'inventaire', 'commander', 'nouveau'];
-  var ongletCourant = ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'tableau';
+  var ONGLETS = ['tableau', 'reception', 'sortie', 'inventaire', 'commander', 'nouveau', 'fiche', 'etiquettes'];
+  // #a=AMP-003 : adresse encodée dans le QR d'un bac → fiche de l'article.
+  function refDepuisAdresse() {
+    var m = location.hash.match(/^#a=([A-Z]{3}-\d{3})$/i);
+    return m ? m[1].toUpperCase() : null;
+  }
+  var refFiche = refDepuisAdresse();
+  var ongletCourant = refFiche ? 'fiche'
+    : (ONGLETS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : 'tableau');
   window.addEventListener('hashchange', function () {
+    var r = refDepuisAdresse();
+    if (r) { refFiche = r; dessinerFiche(); afficher('fiche'); return; }
     var n = location.hash.slice(1);
     if (ONGLETS.indexOf(n) >= 0) afficher(n);
   });
@@ -602,6 +644,8 @@
       $(n).hidden = (n !== nom) || !etat.familles.length;
     });
     if (nom === 'tableau' && etat.familles.length && !etat.tableau) chargerTableau();
+    if (nom === 'fiche' && etat.familles.length) dessinerFiche();
+    if (nom === 'etiquettes' && etat.familles.length) dessinerChoixEtiquettes();
     Array.prototype.forEach.call(document.querySelectorAll('#onglets button'), function (b) {
       b.classList.toggle('actif', b.getAttribute('data-onglet') === nom);
     });
@@ -1103,8 +1147,9 @@
       message((rep.groupe ? 'Seuil du groupe « ' + rep.groupe + ' »' : 'Seuil mini de « ' + a.designation + ' »') + ' : ' +
         (rep.seuil === '' ? 'aucun' : quantite(rep.seuil, a.unite)) + '.', 'ok');
       ['reception', 'sortie', 'inventaire'].forEach(function (z) { dessinerChoix(z); });
+      if (ongletCourant === 'fiche') dessinerFiche();
       dessinerCommander();
-    }).catch(function (err) { apresEchec(err.enAttente ? zone : null, err); occupe(b, false); });
+    }).catch(function (err) { apresEchec(err.enAttente && zone !== 'fiche' ? zone : null, err); occupe(b, false); });
   });
 
   /* ── Groupes : références interchangeables, un seul seuil (onglet Groupes du classeur) ── */
@@ -1153,6 +1198,185 @@
     }).join('') : '<div class="vide">Rien à commander : tout est au-dessus du seuil.</div>';
   }
 
+  /* ── Fiche article (QR d'un bac) ─────────────────────────────────────────── */
+  function dessinerFiche() {
+    var a = refFiche && article(refFiche);
+    var boite = $('fiche-contenu');
+    if (!a) {
+      boite.innerHTML = '<div class="vide">Article ' + echapper(refFiche || '') + ' introuvable : étiquette ancienne, ou réf supprimée.</div>';
+      return;
+    }
+    var g = a.groupe ? groupe(a.groupe) : null;
+    etat.choix.fiche = a.ref;   // pour la ligne « Seuil mini · Modifier »
+    boite.innerHTML = '<h2>' + echapper(a.famille) + ' · ' + echapper(a.ref) + '</h2>' +
+      '<div class="fiche-nom">' + echapper(a.designation) + '</div>' +
+      '<div class="meta" style="color:var(--text-3);font-size:12px;margin-top:2px">' +
+        echapper([a.marque, a.details, a.fournisseur].filter(Boolean).join(' · ')) + (a.prix ? ' · ' + prixTexte(a) : '') + '</div>' +
+      '<div class="fiche-stock' + (estBas(a) ? '" style="color:var(--rouge)' : '') + '">' + echapper(quantite(a.stock, a.unite)) + '</div>' +
+      '<div style="font-size:12px;color:var(--text-3)">en stock' + (estBas(a) ? ' — à commander' : '') +
+        (g ? ' · groupe ' + echapper(a.groupe) + ' : ' + echapper(quantite(g.stock, a.unite)) + ' au total' : '') + '</div>' +
+      ligneSeuil(a, 'fiche') +
+      '<div class="fiche-actions">' +
+        '<button type="button" class="btn" data-fiche-vers="sortie">Sortie</button>' +
+        '<button type="button" class="btn sec" data-fiche-vers="reception">Réception</button>' +
+        '<button type="button" class="btn sec" data-fiche-vers="inventaire">Inventaire</button></div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fiche-vers]');
+    if (!b || !refFiche) return;
+    var zone = b.getAttribute('data-fiche-vers');
+    if (zone === 'inventaire') etat.serie = null;
+    etat.choix[zone] = refFiche;
+    dessinerChoix(zone);
+    history.replaceState(null, '', location.pathname);
+    afficher(zone);
+    window.scrollTo(0, 0);
+  });
+
+  /* ── Étiquettes QR 14 × 30 mm (Niimbot D110) ─────────────────────────────────
+     Même gabarit que les étiquettes de pièces du registre (PNG 30 × 14 mm à 300 dpi,
+     validé sur la D110). Le QR porte l'ADRESSE de la fiche : l'appareil photo du téléphone
+     l'ouvre directement. Plus long qu'une simple réf, il est donc plus grand (12 mm). */
+  var ETQ_DPI = 300, ETQ_MM = ETQ_DPI / 25.4;
+  var ETQ_L = Math.round(30 * ETQ_MM), ETQ_H = Math.round(14 * ETQ_MM);   // 354 × 165 px
+  var ETQ_QR = Math.round(12 * ETQ_MM);                                   // 142 px
+  var ETQ_MARGE = Math.round(1 * ETQ_MM);
+  var URL_FICHE = 'https://frederic-aranaz.github.io/stock-atelier/#a=';
+  var etqFamille = null, etqChoix = {}, qrPret = null;
+
+  function chargerQr() {
+    if (qrPret) return qrPret;
+    qrPret = new Promise(function (ok, ko) {
+      var sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+      sc.onload = ok; sc.onerror = function () { qrPret = null; ko(new Error('Bibliothèque QR injoignable (réseau ?).')); };
+      document.head.appendChild(sc);
+    });
+    return qrPret;
+  }
+  function dessinerChoixEtiquettes() {
+    var nb = {};
+    etat.articles.forEach(function (a) { nb[a.famille] = (nb[a.famille] || 0) + 1; });
+    $('etq-familles').innerHTML = '<div class="pastilles filtre">' + etat.familles.filter(function (f) { return nb[f.nom]; })
+      .map(function (f) {
+        return '<button type="button" data-etq-famille="' + echapper(f.nom) + '"' + (etqFamille === f.nom ? ' class="actif"' : '') + '>' +
+          echapper(f.nom) + '<span class="nb">' + nb[f.nom] + '</span></button>';
+      }).join('') + '</div>';
+    var liste = etqFamille ? articlesFamille(etqFamille) : [];
+    $('etq-liste').innerHTML = etqFamille ? '<label><input type="checkbox" data-etq-tout' +
+      (liste.every(function (a) { return etqChoix[a.ref]; }) ? ' checked' : '') + '> <strong>Tout ' + echapper(etqFamille) + '</strong></label>' +
+      liste.map(function (a) {
+        return '<label><input type="checkbox" data-etq-ref="' + echapper(a.ref) + '"' + (etqChoix[a.ref] ? ' checked' : '') + '> ' +
+          echapper(a.designation) + ' <span style="color:var(--text-3);font-size:12px">' + echapper(a.ref) + '</span></label>';
+      }).join('') : '<p class="aide">Choisis une famille, puis coche les articles.</p>';
+  }
+  document.addEventListener('click', function (e) {
+    var f = e.target.closest('[data-etq-famille]');
+    if (f) {
+      etqFamille = f.getAttribute('data-etq-famille');
+      etqChoix = {};
+      articlesFamille(etqFamille).forEach(function (a) { etqChoix[a.ref] = true; });
+      dessinerChoixEtiquettes();
+    }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.hasAttribute('data-etq-ref')) { etqChoix[e.target.getAttribute('data-etq-ref')] = e.target.checked; dessinerChoixEtiquettes(); }
+    if (e.target.hasAttribute('data-etq-tout')) {
+      articlesFamille(etqFamille).forEach(function (a) { etqChoix[a.ref] = e.target.checked; });
+      dessinerChoixEtiquettes();
+    }
+  });
+
+  /* Texte sur au plus `lignes` lignes, coupé aux espaces, réduit si un mot ne tient pas. */
+  function ecrireLignes(ctx, texte, x, y, largeur, taille, lignes, gras) {
+    var police = function (t) { return (gras ? '700 ' : '400 ') + t + 'px Arial, Helvetica, sans-serif'; };
+    var mots = String(texte).split(/\s+/).filter(Boolean), sortie = [], t = taille;
+    for (; t >= taille * 0.7; t -= 1) {
+      ctx.font = police(t);
+      sortie = []; var ligne = '';
+      mots.forEach(function (m) {
+        var essai = ligne ? ligne + ' ' + m : m;
+        if (ctx.measureText(essai).width <= largeur || !ligne) ligne = essai; else { sortie.push(ligne); ligne = m; }
+      });
+      if (ligne) sortie.push(ligne);
+      if (sortie.length <= lignes && sortie.every(function (l) { return ctx.measureText(l).width <= largeur; })) break;
+    }
+    if (sortie.length > lignes) { sortie = sortie.slice(0, lignes); sortie[lignes - 1] = sortie[lignes - 1].replace(/\s*\S*$/, '') + '…'; }
+    sortie.forEach(function (l, i) { ctx.fillText(l, x, y + i * Math.round(t * 1.12)); });
+    return y + sortie.length * Math.round(t * 1.12);
+  }
+  function composerEtiquette(a) {
+    return new Promise(function (ok) {
+      var boite = document.createElement('div');
+      boite.style.position = 'absolute'; boite.style.left = '-9999px';
+      document.body.appendChild(boite);
+      new QRCode(boite, { text: URL_FICHE + a.ref, width: ETQ_QR, height: ETQ_QR, correctLevel: QRCode.CorrectLevel.M });
+      var essais = 0;
+      (function attendre() {
+        var src = boite.querySelector('canvas');
+        if (!src || !src.width) { if (essais++ < 50) return setTimeout(attendre, 20); }
+        var c = document.createElement('canvas');
+        c.width = ETQ_L; c.height = ETQ_H;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, ETQ_L, ETQ_H);
+        ctx.imageSmoothingEnabled = false;
+        if (src) ctx.drawImage(src, ETQ_MARGE, Math.round((ETQ_H - ETQ_QR) / 2), ETQ_QR, ETQ_QR);
+        document.body.removeChild(boite);
+        var x = ETQ_MARGE + ETQ_QR + Math.round(1.2 * ETQ_MM), largeur = ETQ_L - x - ETQ_MARGE;
+        ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
+        ecrireLignes(ctx, a.designation, x, ETQ_MARGE + 4, largeur, 30, 3, true);
+        // Bas : réf + marque (deux références de même désignation doivent se distinguer au bac).
+        var bas = a.ref + (a.marque ? ' · ' + a.marque : '');
+        var t = 22;
+        do { ctx.font = '400 ' + t + 'px Arial, Helvetica, sans-serif'; } while (ctx.measureText(bas).width > largeur && --t > 14);
+        ctx.fillText(bas, x, ETQ_H - ETQ_MARGE - t - 2);
+        ok(c);
+      })();
+    });
+  }
+  function nomEtiquette(a) {
+    return 'ETQ_' + a.ref + '_' + a.designation.normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '.png';
+  }
+  function telecharger(canvas, nom) {
+    var l = document.createElement('a');
+    l.href = canvas.toDataURL('image/png'); l.download = nom;
+    document.body.appendChild(l); l.click(); document.body.removeChild(l);
+  }
+  var etqCanvas = [];
+  $('etq-generer').addEventListener('click', function () {
+    var liste = etat.articles.filter(function (a) { return etqChoix[a.ref]; });
+    if (!liste.length) { message('Coche au moins un article.', 'erreur'); return; }
+    var bouton = this;
+    occupe(bouton, true, 'Génération…');
+    chargerQr().then(function () {
+      return liste.reduce(function (p, a) {
+        return p.then(function (acc) { return composerEtiquette(a).then(function (c) { acc.push({ a: a, c: c }); return acc; }); });
+      }, Promise.resolve([]));
+    }).then(function (faites) {
+      etqCanvas = faites;
+      $('etq-grille').innerHTML = '';
+      faites.forEach(function (x, i) {
+        var carte = document.createElement('div');
+        carte.className = 'etq-carte';
+        carte.appendChild(x.c);
+        carte.insertAdjacentHTML('beforeend', '<button type="button" class="btn sec" data-etq-dl="' + i + '">Télécharger</button>');
+        $('etq-grille').appendChild(carte);
+      });
+      $('etq-tout').hidden = faites.length < 2;
+      $('etq-tout').textContent = 'Tout télécharger (' + faites.length + ' images)';
+    }).catch(function (err) { message(err.message, 'erreur'); })
+      .then(function () { occupe(bouton, false); });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-etq-dl]');
+    if (b) { var x = etqCanvas[Number(b.getAttribute('data-etq-dl'))]; telecharger(x.c, nomEtiquette(x.a)); }
+  });
+  // Les navigateurs bloquent des téléchargements trop rapprochés : un toutes les 300 ms.
+  $('etq-tout').addEventListener('click', function () {
+    etqCanvas.forEach(function (x, i) { setTimeout(function () { telecharger(x.c, nomEtiquette(x.a)); }, i * 300); });
+  });
+
   /* ── Tableau de bord ───────────────────────────────────────────────────── */
   function euros(n) {
     return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -1185,7 +1409,8 @@
         '<div class="meta">' + f.refs + ' réf' + (f.refs > 1 ? 's' : '') + ' · ' + part + ' % de la valeur' +
           (f.aCommander ? ' · <span class="cmd">' + f.aCommander + ' à commander</span>' : '') + '</div>' +
         '<div class="barre"><span style="width:' + Math.round(f.valeur / max * 100) + '%"></span></div></button>';
-    }).join('') + '<p class="aide">Toucher une famille ouvre son inventaire.</p></div>';
+    }).join('') + '<p class="aide">Toucher une famille ouvre son inventaire.</p>' +
+      '<button type="button" class="lien-btn" data-aller="etiquettes">Imprimer des étiquettes QR pour les bacs (Niimbot D110)</button></div>';
     var mvts = '<div class="carte"><h2>Derniers mouvements</h2>' + (t.derniers.length ? t.derniers.map(function (m) {
       var a = article(m.ref);
       var signe = m.type === 'Sortie' ? -1 : 1;
