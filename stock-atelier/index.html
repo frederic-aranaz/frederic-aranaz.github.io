@@ -195,6 +195,17 @@
     .mvt .info { flex: 1; min-width: 0; }
     .mvt .info .nom { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mvt .info .meta { display: block; font-size: 11px; color: var(--text-3); }
+    /* Scanner de QR intégré (caméra arrière, plein écran) */
+    #scanner { position: fixed; inset: 0; z-index: 20; background: #000; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 16px; gap: 14px; }
+    .scan-cadre { position: relative; width: 100%; max-width: 480px; aspect-ratio: 3 / 4; border-radius: 14px;
+      overflow: hidden; background: #111; }
+    .scan-cadre video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .scan-viseur { position: absolute; left: 50%; top: 50%; width: 62%; aspect-ratio: 1; transform: translate(-50%, -50%);
+      border: 3px solid var(--ek-clair); border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.35); }
+    #scan-texte { color: var(--text); font-size: 14px; text-align: center; min-height: 20px; max-width: 480px; }
+    #scanner .btn { max-width: 480px; margin: 0; }
+    .scan-btn { margin: -6px 0 14px; min-height: 46px; }
     @media (max-width: 420px) {
       nav.onglets { grid-template-columns: repeat(3, 1fr); }
       .ligne3 { grid-template-columns: 1fr 1fr; }
@@ -206,11 +217,19 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.09</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.09-2</span> <small id="etat">Chargement…</small></h1>
     <a class="icone-btn" href="https://docs.google.com/spreadsheets/d/1iNxZU1JVLFRizjCUImiy5WXezD28uh3qSRrFij8z4t8/edit"
        target="_blank" rel="noopener" title="Ouvrir le classeur Stock Atelier">Classeur</a>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
   </header>
+
+  <!-- Scanner : lit le QR d'un bac. Depuis Réception / Sortie / Inventaire, l'article scanné est
+       choisi dans la saisie en cours ; ailleurs, sa fiche s'ouvre. -->
+  <div id="scanner" hidden>
+    <div class="scan-cadre"><video id="scan-video" playsinline muted></video><div class="scan-viseur"></div></div>
+    <p id="scan-texte"></p>
+    <button class="btn sec" id="scan-fermer">Fermer</button>
+  </div>
 
   <nav class="onglets" id="onglets">
     <button data-onglet="tableau" class="actif">Tableau de bord</button>
@@ -220,6 +239,7 @@
     <button data-onglet="commander">À commander<span class="badge" id="badge" hidden></span></button>
     <button data-onglet="nouveau">Nouvel article</button>
   </nav>
+  <button class="btn sec scan-btn" id="scanner-ouvrir" hidden>Scanner un bac</button>
 
   <!-- Saisies qui ne sont pas parties : elles restent ici, sur l'appareil, jusqu'à ce que Google réponde. -->
   <div id="attente" hidden></div>
@@ -645,6 +665,9 @@
     ONGLETS.forEach(function (n) {
       $(n).hidden = (n !== nom) || !etat.familles.length;
     });
+    $('scanner-ouvrir').hidden = !etat.familles.length;
+    $('scanner-ouvrir').textContent = 'Scanner un bac' +
+      ({ reception: ' → réception', sortie: ' → sortie', inventaire: ' → inventaire' }[nom] || '');
     if (nom === 'tableau' && etat.familles.length && !etat.tableau) chargerTableau();
     if (nom === 'fiche' && etat.familles.length) dessinerFiche();
     if (nom === 'etiquettes' && etat.familles.length) dessinerChoixEtiquettes();
@@ -1234,6 +1257,135 @@
     afficher(zone);
     window.scrollTo(0, 0);
   });
+
+  /* ── Scanner de QR intégré ──────────────────────────────────────────────────
+     Caméra arrière dans la page, pour enchaîner les bacs sans passer par l'appareil photo.
+     Lecteur natif du navigateur (BarcodeDetector, Chrome Android) quand il existe, sinon
+     jsQR (iPhone). Accepte le QR des étiquettes (…#a=RÉF) ou une réf seule. */
+  var ZONES_SAISIE = ['reception', 'sortie', 'inventaire'];
+  var scan = { flux: null, zone: null, actif: false, detecteur: null, toile: null, dernier: 0, refus: '' };
+  var jsQrPret = null;
+
+  function chargerJsQr() {
+    if (jsQrPret) return jsQrPret;
+    jsQrPret = new Promise(function (ok, ko) {
+      var sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      sc.onload = ok; sc.onerror = function () { jsQrPret = null; ko(new Error('Lecteur QR injoignable (réseau ?).')); };
+      document.head.appendChild(sc);
+    });
+    return jsQrPret;
+  }
+  function preparerLecteur() {
+    if (!('BarcodeDetector' in window)) return chargerJsQr().then(function () { return null; });
+    return window.BarcodeDetector.getSupportedFormats().then(function (formats) {
+      if (formats.indexOf('qr_code') >= 0) return new window.BarcodeDetector({ formats: ['qr_code'] });
+      return chargerJsQr().then(function () { return null; });
+    });
+  }
+  function refDepuisTexte(t) {
+    var m = String(t || '').trim().match(/(?:#a=|^)([A-Z]{3}-\d{3})$/i);
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function ouvrirScanner(zone) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      message("Ce navigateur ne donne pas accès à la caméra. Utilise l'appareil photo du téléphone sur l'étiquette.", 'erreur');
+      return;
+    }
+    scan.zone = ZONES_SAISIE.indexOf(zone) >= 0 ? zone : null;
+    scan.actif = true; scan.refus = '';
+    $('scanner').hidden = false;
+    $('scan-texte').textContent = 'Ouverture de la caméra…';
+    var camera = navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    Promise.all([camera, preparerLecteur()]).then(function (r) {
+      scan.flux = r[0]; scan.detecteur = r[1];
+      if (!scan.actif) { fermerScanner(); return; }
+      var v = $('scan-video');
+      v.srcObject = scan.flux;
+      return v.play().then(function () {
+        $('scan-texte').textContent = scan.zone
+          ? "Vise le QR du bac : l'article sera choisi pour la " + { reception: 'réception', sortie: 'sortie', inventaire: "l'inventaire" }[scan.zone] + '.'
+          : "Vise le QR du bac : sa fiche s'ouvrira.";
+        requestAnimationFrame(boucleScan);
+      });
+    }).catch(function (err) {
+      camera.then(function (f) { f.getTracks().forEach(function (t) { t.stop(); }); }, function () {});
+      fermerScanner();
+      var n = err && err.name;
+      message(n === 'NotAllowedError' ? "Accès à la caméra refusé : autorise-le pour ce site dans les réglages du navigateur."
+        : n === 'NotFoundError' ? 'Aucune caméra trouvée sur cet appareil.'
+        : 'Caméra indisponible : ' + (err && err.message || err), 'erreur');
+    });
+  }
+
+  function fermerScanner() {
+    scan.actif = false;
+    if (scan.flux) scan.flux.getTracks().forEach(function (t) { t.stop(); });
+    scan.flux = null;
+    $('scan-video').srcObject = null;
+    $('scanner').hidden = true;
+  }
+
+  function boucleScan(t) {
+    if (!scan.actif) return;
+    var v = $('scan-video');
+    if (t - scan.dernier < 150 || v.readyState < 2) { requestAnimationFrame(boucleScan); return; }
+    scan.dernier = t;
+    lireImage(v).then(function (texte) {
+      if (!scan.actif) return;
+      if (texte != null) traiterLecture(texte);
+      if (scan.actif) requestAnimationFrame(boucleScan);
+    }).catch(function () { if (scan.actif) requestAnimationFrame(boucleScan); });
+  }
+  function lireImage(v) {
+    if (scan.detecteur) {
+      return scan.detecteur.detect(v).then(function (codes) { return codes.length ? codes[0].rawValue : null; });
+    }
+    // jsQR : image réduite à 640 px de large, assez pour un QR de 12 mm à 20-30 cm.
+    var l = Math.min(640, v.videoWidth), h = Math.round(v.videoHeight * l / v.videoWidth);
+    var c = scan.toile || (scan.toile = document.createElement('canvas'));
+    c.width = l; c.height = h;
+    var ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(v, 0, 0, l, h);
+    var code = window.jsQR(ctx.getImageData(0, 0, l, h).data, l, h, { inversionAttempts: 'dontInvert' });
+    return Promise.resolve(code ? code.data : null);
+  }
+
+  function traiterLecture(texte) {
+    var ref = refDepuisTexte(texte);
+    var a = ref && article(ref);
+    if (!a) {
+      // QR étranger ou réf supprimée : on le dit et on continue de viser.
+      var dit = ref ? 'Article ' + ref + ' introuvable (étiquette ancienne ?).' : "Ce QR n'est pas une étiquette Stock Atelier.";
+      if (scan.refus !== dit) { scan.refus = dit; $('scan-texte').textContent = dit; }
+      return;
+    }
+    if (navigator.vibrate) navigator.vibrate(60);
+    var zone = scan.zone;
+    fermerScanner();
+    if (zone) {
+      if (zone === 'inventaire' && etat.serie && etat.serie.famille !== a.famille) etat.serie = null;
+      etat.choix[zone] = a.ref;
+      dessinerChoix(zone);
+      history.replaceState(null, '', location.pathname);
+      afficher(zone);
+    } else {
+      refFiche = a.ref;
+      history.replaceState(null, '', '#a=' + a.ref);
+      afficher('fiche');
+    }
+    window.scrollTo(0, 0);
+    message('Scanné : ' + a.designation + ' (' + a.ref + ')', 'ok');
+  }
+
+  $('scanner-ouvrir').addEventListener('click', function () {
+    if (!etat.familles.length) { message('Le stock se charge encore, réessaie dans un instant.'); return; }
+    ouvrirScanner(ongletCourant);
+  });
+  $('scan-fermer').addEventListener('click', fermerScanner);
+  // Caméra coupée si on quitte la page (verrouillage, autre appli).
+  document.addEventListener('visibilitychange', function () { if (document.hidden && scan.actif) fermerScanner(); });
 
   /* ── Étiquettes QR 14 × 30 mm (Niimbot D110) ─────────────────────────────────
      Même gabarit que les étiquettes de pièces du registre (PNG 30 × 14 mm à 300 dpi,
