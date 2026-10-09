@@ -226,7 +226,7 @@
       <div class="titre">
         <!-- Version affichée = VERSION de sw.js : changer les deux ensemble à chaque publication.
              Elle dit sur le téléphone si c'est bien la dernière page qui est chargée. -->
-        <h1>EKAYE <span class="version">v17</span></h1>
+        <h1>EKAYE <span class="version">v18</span></h1>
         <p>Tous les outils, une seule icône</p>
       </div>
       <span class="etat-reseau" id="etatReseau">En ligne</span>
@@ -326,6 +326,41 @@
             <span>
               <span class="nom">Pointage</span>
               <span class="desc">Scanner les étiquettes sur place, pour voir ce qui manque vraiment.</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
+          <!-- Envoi en dépôt : la troisième page du stock, et la seule qui DÉPLACE des
+               pièces. Inventaire dit ce qui est censé être chez eux, Pointage ce qui y est
+               vraiment, celle-ci ce qu'on leur envoie. Elles partagent leur source, et
+               c'est pourquoi les trois sont voisines ici.
+
+               Même domaine que le portail, donc pas de target — elle s'ouvre dans sa
+               fenêtre. Mais data-reseau, et c'est là qu'elle se SÉPARE de Pointage : son
+               service worker la met bien en cache, mais elle refuse de travailler sans
+               réseau — constituer un envoi sur un stock périmé déplacerait des pièces
+               vendues depuis. Grisée hors ligne, elle évite un déplacement pour rien.
+               Même combinaison inhabituelle que Gabarits vitrail. -->
+          <a class="tuile" data-reseau href="https://frederic-aranaz.github.io/ekaye-vente-scan/envoi.html">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <!-- « Ce qui sort d'ici », et surtout PAS un cube : Stock Atelier, la
+                     tuile d'à côté, en porte déjà un, et deux voisines au même glyphe
+                     se ratent à l'œil.
+
+                     Le SVG est rendu à 22 px, soit 0,92 px par unité du viewBox : un
+                     carton détaillé — bande adhésive, petite flèche à côté — y devient
+                     une tache. D'où deux formes seulement, et grandes. -->
+                <path d="M21 14.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4.5"/>
+                <path d="M12 3v12M7 8l5-5 5 5"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Envoi en dépôt</span>
+              <span class="desc">Scanner les étiquettes d'un colis, écrire le dépôt et la date, puis sortir le bon.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
             </span>
             <span class="fleche" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>

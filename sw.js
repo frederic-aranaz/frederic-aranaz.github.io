@@ -18,7 +18,10 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v17';  // v16 : tuile « Trajets IK » sous Stock Atelier (06/10/2026)
+var VERSION = 'v18';  // v18 : tuile « Envoi en dépôt » sous Pointage (09/10/2026)
+/* v17 : tuile « Coût de revient — Lampes » ; v16 : tuile « Trajets IK » (06/10/2026).
+   Le commentaire était resté sur v16 quand VERSION est passée à v17 — une version qui
+   ne se raconte pas ne se vérifie plus. */
                       // v15 : numéro de version affiché après « EKAYE » (même valeur
                       //       dans index.html, <span class="version">)
                       // v14 : tuile « À commander » retirée (les alertes passent
