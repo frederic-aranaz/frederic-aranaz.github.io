@@ -18,7 +18,7 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v16';  // v16 : tuile « Trajets IK » sous Stock Atelier (06/10/2026)
+var VERSION = 'v17';  // v16 : tuile « Trajets IK » sous Stock Atelier (06/10/2026)
                       // v15 : numéro de version affiché après « EKAYE » (même valeur
                       //       dans index.html, <span class="version">)
                       // v14 : tuile « À commander » retirée (les alertes passent
