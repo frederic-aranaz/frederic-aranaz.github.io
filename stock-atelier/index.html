@@ -205,6 +205,8 @@
       border: 3px solid var(--ek-clair); border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.35); }
     #scan-texte { color: var(--text); font-size: 14px; text-align: center; min-height: 20px; max-width: 480px; }
     #scanner .btn { max-width: 480px; margin: 0; }
+    .marques { margin-top: 10px; }
+    .marques-titre { display: block; font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
     .scan-btn { margin: -6px 0 14px; min-height: 46px; }
     @media (max-width: 420px) {
       nav.onglets { grid-template-columns: repeat(3, 1fr); }
@@ -217,7 +219,7 @@
     <a class="retour" href="/" aria-label="Retour au portail">←</a>
     <!-- Version de la page : à changer à chaque mise en ligne (AAAA.MM.JJ, suffixe -2, -3… si
          plusieurs le même jour). Elle dit sur le téléphone si c'est bien la dernière qui est chargée. -->
-    <h1>Stock Atelier <span class="version">v2026.10.09-2</span> <small id="etat">Chargement…</small></h1>
+    <h1>Stock Atelier <span class="version">v2026.10.09-3</span> <small id="etat">Chargement…</small></h1>
     <a class="icone-btn" href="https://docs.google.com/spreadsheets/d/1iNxZU1JVLFRizjCUImiy5WXezD28uh3qSRrFij8z4t8/edit"
        target="_blank" rel="noopener" title="Ouvrir le classeur Stock Atelier">Classeur</a>
     <button class="icone-btn" id="actualiser" title="Recharger le stock">↻</button>
@@ -709,6 +711,7 @@
         (a.groupe ? '<br>Groupe <strong>' + echapper(a.groupe) + '</strong> : ' + echapper(quantite(stockGroupe(a.groupe), a.unite)) + ' au total' : '') +
         '</div></div>' +
         '<button type="button" class="icone-btn" data-changer="' + zone + '">Changer</button></div>' +
+        marquesGroupe(a, zone) +
         ligneSeuil(a, zone);
     } else {
       boite.innerHTML = pastillesFamilles(zone) +
@@ -738,6 +741,31 @@
       dessinerMorceaux();
     }
   }
+
+  /* Références d'un même groupe (même ampoule, autre marque) : souvent un seul bac, une seule
+     étiquette. Le scan tombe sur la réf de l'étiquette ; un toucher bascule sur la bonne marque. */
+  function marquesGroupe(a, zone) {
+    if (!a.groupe) return '';
+    var membres = etat.articles.filter(function (x) { return x.groupe === a.groupe; });
+    if (membres.length < 2) return '';
+    return '<div class="marques"><span class="marques-titre">Quelle marque ?</span><div class="pastilles">' +
+      membres.map(function (m) {
+        return '<button type="button" data-marque="' + echapper(m.ref) + '" data-marque-zone="' + zone + '"' +
+          (m.ref === a.ref ? ' class="actif"' : '') + '>' + echapper(m.marque || m.designation) +
+          '<span class="nb">' + echapper(m.ref) + ' · ' + nombre(m.stock) + '</span></button>';
+      }).join('') + '</div></div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-marque]');
+    if (!b) return;
+    var zone = b.getAttribute('data-marque-zone'), ref = b.getAttribute('data-marque');
+    if (zone === 'fiche') { refFiche = ref; history.replaceState(null, '', '#a=' + ref); dessinerFiche(); return; }
+    // Le fournisseur pré-rempli était celui de l'autre marque : il laisse la place au bon.
+    var ancien = article(etat.choix[zone]);
+    if (zone === 'reception' && ancien && $('r-fournisseur').value === ancien.fournisseur) $('r-fournisseur').value = '';
+    etat.choix[zone] = ref;
+    dessinerChoix(zone);
+  });
 
   /* ── Inventaire en série : une famille, article après article ──────────────
      Ce qui est compté est retenu sur l'appareil (par famille), pour reprendre plus tard
@@ -1240,6 +1268,7 @@
       '<div class="fiche-stock' + (estBas(a) ? '" style="color:var(--rouge)' : '') + '">' + echapper(quantite(a.stock, a.unite)) + '</div>' +
       '<div style="font-size:12px;color:var(--text-3)">en stock' + (estBas(a) ? ' — à commander' : '') +
         (g ? ' · groupe ' + echapper(a.groupe) + ' : ' + echapper(quantite(g.stock, a.unite)) + ' au total' : '') + '</div>' +
+      marquesGroupe(a, 'fiche') +
       ligneSeuil(a, 'fiche') +
       '<div class="fiche-actions">' +
         '<button type="button" class="btn" data-fiche-vers="sortie">Sortie</button>' +
