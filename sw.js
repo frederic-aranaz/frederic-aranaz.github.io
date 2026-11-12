@@ -18,7 +18,7 @@
  * servir l'ancienne indéfiniment : c'est le seul piège de ce fichier.
  */
 
-var VERSION = 'v20';  // v20 : tuile « CRM clients » avant la Carte des clients (12/11/2026) · v18 : tuile « Envoi en dépôt » sous Pointage (09/10/2026)
+var VERSION = 'v21';  // v21 : tuile « Recherche de factures » (outil local du PC) en fin de « À l'atelier » (12/11/2026) · v20 : tuile « CRM clients » avant la Carte des clients (12/11/2026) · v18 : tuile « Envoi en dépôt » sous Pointage (09/10/2026)
 /* v17 : tuile « Coût de revient — Lampes » ; v16 : tuile « Trajets IK » (06/10/2026).
    Le commentaire était resté sur v16 quand VERSION est passée à v17 — une version qui
    ne se raconte pas ne se vérifie plus. */
