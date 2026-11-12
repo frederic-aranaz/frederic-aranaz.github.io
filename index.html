@@ -160,9 +160,6 @@
     }
     .chip.autonome { color: var(--ok);     background: rgba(127,176,105,0.12); border: 1px solid rgba(127,176,105,0.3); }
     .chip.bureau   { color: var(--text-3); background: rgba(201,136,42,0.08);  border: 1px solid var(--borderdiv); }
-    /* Tuile .pc-seul : l'outil tourne sur le PC lui-même (127.0.0.1). Sur un
-       téléphone l'adresse ne mène nulle part : on ne la montre pas. */
-    @media (hover: none) and (pointer: coarse) { .tuile.pc-seul { display: none; } }
 
     /* Hors ligne : ce qui appelle Google est inatteignable. On le dit et on le
        désarme, plutôt que de laisser taper sur une tuile qui tournera dans le vide. */
@@ -229,7 +226,7 @@
       <div class="titre">
         <!-- Version affichée = VERSION de sw.js : changer les deux ensemble à chaque publication.
              Elle dit sur le téléphone si c'est bien la dernière page qui est chargée. -->
-        <h1>EKAYE <span class="version">v21</span></h1>
+        <h1>EKAYE <span class="version">v22</span></h1>
         <p>Tous les outils, une seule icône</p>
       </div>
       <span class="etat-reseau" id="etatReseau">En ligne</span>
@@ -459,6 +456,26 @@
             </span>
           </a>
 
+          <!-- Recherche de factures : web app Apps Script « Recherche factures EKAYE »
+               (projet recherche-factures), qui lit 0-GESTION dans le Google Drive.
+               Accès réservé au compte de Frédéric. Hors domaine : target=_blank,
+               data-reseau. -->
+          <a class="tuile" data-reseau target="_blank" rel="noopener" href="https://script.google.com/macros/s/AKfycbyiRmau6bEVeDqnS7HFwwa4LGPl-adEq21kDo1bjccP5_lmXq0MOFq8YAVU2O2A4RQG/exec">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>
+              </svg>
+            </span>
+            <span>
+              <span class="nom">Recherche de factures</span>
+              <span class="desc">Par date, montant, fournisseur ou mot-clé, dans les factures de 0-GESTION.</span>
+              <span class="motif-hors-ligne">Indisponible sans réseau</span>
+            </span>
+            <span class="fleche" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+
         </div>
 
         <a class="action" data-reseau target="_blank" rel="noopener" href="https://script.google.com/macros/s/AKfycbwl4wyUyxOyrWVtXVvjoS-7LMqAULNaNBCAUdBZxRYTlFF3OVkjE0mWifOiG6oqK_h5Xg/exec?actualiserVentes=1">
@@ -575,26 +592,6 @@
               <span class="nom">Gabarits vitrail <span class="chip bureau">Ordinateur</span></span>
               <span class="desc">DXF Fusion 360 → gabarits numérotés, imbriqués, exportés pour la Cameo ; carton 1:1.</span>
               <span class="motif-hors-ligne">Indisponible sans réseau</span>
-            </span>
-            <span class="fleche" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            </span>
-          </a>
-
-          <!-- Recherche de factures : outil local (RechercheFactures/ dans Claude Machin),
-               qui lit 0-GESTION sur le Google Drive du PC. Adresse 127.0.0.1 : elle ne
-               marche que sur ce PC, outil lancé (raccourci du Bureau). Hors domaine donc
-               target=_blank ; PAS de data-reseau — elle ne dépend pas d'Internet.
-               Masquée sur téléphone par .pc-seul. -->
-          <a class="tuile pc-seul" target="_blank" rel="noopener" href="http://127.0.0.1:8765/">
-            <span class="ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#c9882a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>
-              </svg>
-            </span>
-            <span>
-              <span class="nom">Recherche de factures <span class="chip bureau">Ce PC</span></span>
-              <span class="desc">Par date, montant, fournisseur ou mot-clé dans 0-GESTION. Lancer d'abord « Recherche de factures » depuis le Bureau.</span>
             </span>
             <span class="fleche" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
